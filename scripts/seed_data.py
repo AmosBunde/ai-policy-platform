@@ -11,7 +11,7 @@ import sys
 # Allow running from project root
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from passlib.hash import bcrypt
+import bcrypt as _bcrypt
 
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -30,7 +30,8 @@ ADMIN_PASSWORD = os.environ.get("SEED_ADMIN_PASSWORD", "admin123")
 
 
 def hash_password(password: str) -> str:
-    return bcrypt.hash(password)
+    salt = _bcrypt.gensalt(rounds=12)
+    return _bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
 
 def compute_content_hash(content: str) -> str:
