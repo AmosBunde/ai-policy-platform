@@ -1,0 +1,111 @@
+version: "3.9"
+
+# Test overrides — run with: docker compose -f docker-compose.yml -f docker-compose.test.yml up --abort-on-container-exit
+
+services:
+  postgres:
+    environment:
+      POSTGRES_DB: regulatorai_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+    volumes:
+      - ./infrastructure/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports: []
+    tmpfs:
+      - /var/lib/postgresql/data
+
+  redis:
+    command: redis-server --requirepass testpass --appendonly no
+    volumes: []
+    ports: []
+    tmpfs:
+      - /data
+
+  elasticsearch:
+    environment:
+      - discovery.type=single-node
+      - ELASTIC_PASSWORD=testpass
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+    volumes: []
+    ports: []
+    tmpfs:
+      - /usr/share/elasticsearch/data
+
+  gateway-service:
+    environment:
+      - APP_ENV=test
+      - DATABASE_URL=postgresql+asyncpg://test_user:test_password@postgres:5432/regulatorai_test
+      - REDIS_URL=redis://:testpass@redis:6379/0
+      - JWT_SECRET=test-jwt-secret-not-for-production
+      - LOG_LEVEL=DEBUG
+    command: pytest tests/ -v --tb=short --junitxml=/tmp/test-results.xml
+    ports: []
+
+  ingestion-service:
+    environment:
+      - APP_ENV=test
+      - DATABASE_URL=postgresql+asyncpg://test_user:test_password@postgres:5432/regulatorai_test
+      - REDIS_URL=redis://:testpass@redis:6379/0
+      - LOG_LEVEL=DEBUG
+    command: pytest tests/ -v --tb=short --junitxml=/tmp/test-results.xml
+    ports: []
+
+  agent-service:
+    environment:
+      - APP_ENV=test
+      - DATABASE_URL=postgresql+asyncpg://test_user:test_password@postgres:5432/regulatorai_test
+      - REDIS_URL=redis://:testpass@redis:6379/0
+      - OPENAI_API_KEY=sk-test-not-real
+      - LOG_LEVEL=DEBUG
+    command: pytest tests/ -v --tb=short --junitxml=/tmp/test-results.xml
+    ports: []
+
+  compliance-service:
+    environment:
+      - APP_ENV=test
+      - DATABASE_URL=postgresql+asyncpg://test_user:test_password@postgres:5432/regulatorai_test
+      - LOG_LEVEL=DEBUG
+    command: pytest tests/ -v --tb=short --junitxml=/tmp/test-results.xml
+    ports: []
+
+  search-service:
+    environment:
+      - APP_ENV=test
+      - DATABASE_URL=postgresql+asyncpg://test_user:test_password@postgres:5432/regulatorai_test
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - ELASTICSEARCH_PASSWORD=testpass
+      - LOG_LEVEL=DEBUG
+    command: pytest tests/ -v --tb=short --junitxml=/tmp/test-results.xml
+    ports: []
+
+  notification-service:
+    environment:
+      - APP_ENV=test
+      - DATABASE_URL=postgresql+asyncpg://test_user:test_password@postgres:5432/regulatorai_test
+      - REDIS_URL=redis://:testpass@redis:6379/0
+      - LOG_LEVEL=DEBUG
+    command: pytest tests/ -v --tb=short --junitxml=/tmp/test-results.xml
+    ports: []
+
+  # Disable non-test services
+  celery-worker:
+    profiles:
+      - disabled
+
+  celery-beat:
+    profiles:
+      - disabled
+
+  dashboard:
+    profiles:
+      - disabled
+
+  prometheus:
+    profiles:
+      - disabled
+
+  grafana:
+    profiles:
+      - disabled

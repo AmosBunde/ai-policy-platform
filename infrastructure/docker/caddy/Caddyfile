@@ -1,0 +1,42 @@
+{
+    email admin@regulatorai.com
+}
+
+app.regulatorai.com {
+    # Frontend
+    handle / {
+        reverse_proxy dashboard:3000
+    }
+    handle /assets/* {
+        reverse_proxy dashboard:3000
+    }
+
+    # API
+    handle /api/* {
+        reverse_proxy gateway-service:8000
+    }
+    handle /docs {
+        reverse_proxy gateway-service:8000
+    }
+    handle /redoc {
+        reverse_proxy gateway-service:8000
+    }
+    handle /health {
+        reverse_proxy gateway-service:8000
+    }
+
+    # Monitoring (restrict to internal)
+    handle /grafana/* {
+        reverse_proxy grafana:3000
+    }
+
+    # Default to frontend
+    handle {
+        reverse_proxy dashboard:3000
+    }
+
+    log {
+        output file /var/log/caddy/access.log
+        format json
+    }
+}
