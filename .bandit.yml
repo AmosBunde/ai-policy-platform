@@ -1,0 +1,17 @@
+skips:
+  - B101  # assert used in test files
+
+exclude_dirs:
+  - tests
+  - .venv
+  - node_modules
+  - .git
+
+confidence:
+  - MEDIUM
+  - HIGH
+
+severity:
+  - MEDIUM
+  - HIGH
+  - LOW
