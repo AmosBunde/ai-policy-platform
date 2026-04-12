@@ -1,4 +1,4 @@
--- Enable pgvector extension
+-- Enable extensions
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -15,18 +15,23 @@ CREATE TABLE users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+CREATE INDEX idx_users_email ON users(email);
+
 -- Regulatory Sources
 CREATE TABLE regulatory_sources (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
-    source_type VARCHAR(50) NOT NULL, -- rss, api, crawler, manual
+    source_type VARCHAR(50) NOT NULL,
     url TEXT NOT NULL,
     jurisdiction VARCHAR(100),
     category VARCHAR(100),
     crawl_frequency_minutes INTEGER DEFAULT 60,
     is_active BOOLEAN DEFAULT TRUE,
     last_crawled_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT ck_source_type_valid CHECK (source_type IN ('rss', 'api', 'crawler', 'manual')),
+    CONSTRAINT ck_crawl_frequency_positive CHECK (crawl_frequency_minutes > 0),
+    CONSTRAINT ck_url_format CHECK (url ~ '^https?://')
 );
 
 -- Regulatory Documents (raw ingested)
@@ -45,7 +50,8 @@ CREATE TABLE regulatory_documents (
     raw_metadata JSONB DEFAULT '{}',
     status VARCHAR(50) DEFAULT 'ingested',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT ck_document_status_valid CHECK (status IN ('ingested', 'processing', 'enriched', 'failed', 'archived'))
 );
 
 CREATE INDEX idx_docs_source ON regulatory_documents(source_id);
@@ -71,7 +77,9 @@ CREATE TABLE document_enrichments (
     processing_time_ms INTEGER,
     agent_version VARCHAR(50),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT ck_urgency_level_valid CHECK (urgency_level IN ('low', 'normal', 'high', 'critical')),
+    CONSTRAINT ck_confidence_score_range CHECK (confidence_score >= 0.0 AND confidence_score <= 1.0)
 );
 
 CREATE INDEX idx_enrichments_urgency ON document_enrichments(urgency_level);
@@ -102,7 +110,8 @@ CREATE TABLE compliance_reports (
     file_format VARCHAR(10) DEFAULT 'pdf',
     status VARCHAR(50) DEFAULT 'draft',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT ck_report_status_valid CHECK (status IN ('draft', 'generating', 'completed', 'failed'))
 );
 
 -- Watch Rules (for notifications)
@@ -115,7 +124,8 @@ CREATE TABLE watch_rules (
     channels JSONB DEFAULT '["email"]',
     is_active BOOLEAN DEFAULT TRUE,
     last_triggered_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT ck_conditions_json_structure CHECK (jsonb_typeof(conditions) = 'array' OR jsonb_typeof(conditions) = 'object')
 );
 
 -- Notification Log
@@ -147,7 +157,122 @@ CREATE INDEX idx_audit_user ON audit_log(user_id);
 CREATE INDEX idx_audit_action ON audit_log(action);
 CREATE INDEX idx_audit_created ON audit_log(created_at DESC);
 
--- Seed default admin user (password: admin123 - change immediately)
+-- ── Audit Trigger Function ────────────────────────────────
+-- Automatically populates audit_log on INSERT/UPDATE/DELETE for key tables.
+
+CREATE OR REPLACE FUNCTION audit_trigger_func()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        INSERT INTO audit_log (action, resource_type, resource_id, details, created_at)
+        VALUES (
+            TG_OP,
+            TG_TABLE_NAME,
+            OLD.id,
+            jsonb_build_object('old', to_jsonb(OLD)),
+            NOW()
+        );
+        RETURN OLD;
+    ELSIF TG_OP = 'UPDATE' THEN
+        INSERT INTO audit_log (action, resource_type, resource_id, details, created_at)
+        VALUES (
+            TG_OP,
+            TG_TABLE_NAME,
+            NEW.id,
+            jsonb_build_object('old', to_jsonb(OLD), 'new', to_jsonb(NEW)),
+            NOW()
+        );
+        RETURN NEW;
+    ELSIF TG_OP = 'INSERT' THEN
+        INSERT INTO audit_log (action, resource_type, resource_id, details, created_at)
+        VALUES (
+            TG_OP,
+            TG_TABLE_NAME,
+            NEW.id,
+            jsonb_build_object('new', to_jsonb(NEW)),
+            NOW()
+        );
+        RETURN NEW;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Attach audit triggers to key tables
+CREATE TRIGGER audit_users
+    AFTER INSERT OR UPDATE OR DELETE ON users
+    FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
+
+CREATE TRIGGER audit_regulatory_documents
+    AFTER INSERT OR UPDATE OR DELETE ON regulatory_documents
+    FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
+
+CREATE TRIGGER audit_document_enrichments
+    AFTER INSERT OR UPDATE OR DELETE ON document_enrichments
+    FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
+
+CREATE TRIGGER audit_compliance_reports
+    AFTER INSERT OR UPDATE OR DELETE ON compliance_reports
+    FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
+
+CREATE TRIGGER audit_watch_rules
+    AFTER INSERT OR UPDATE OR DELETE ON watch_rules
+    FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
+
+-- ── Row-Level Security (preparation for multi-tenant) ─────
+-- Enable RLS on tables that contain user-scoped data.
+-- Policies are defined but not enforced until ALTER TABLE ... FORCE ROW LEVEL SECURITY.
+
+ALTER TABLE watch_rules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notification_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE compliance_reports ENABLE ROW LEVEL SECURITY;
+
+-- Policy: users can only see their own watch rules
+CREATE POLICY watch_rules_user_policy ON watch_rules
+    FOR ALL
+    USING (user_id = current_setting('app.current_user_id', true)::uuid)
+    WITH CHECK (user_id = current_setting('app.current_user_id', true)::uuid);
+
+-- Policy: users can only see their own notifications
+CREATE POLICY notification_log_user_policy ON notification_log
+    FOR ALL
+    USING (user_id = current_setting('app.current_user_id', true)::uuid)
+    WITH CHECK (user_id = current_setting('app.current_user_id', true)::uuid);
+
+-- Policy: users can only see their own reports
+CREATE POLICY compliance_reports_user_policy ON compliance_reports
+    FOR ALL
+    USING (created_by = current_setting('app.current_user_id', true)::uuid)
+    WITH CHECK (created_by = current_setting('app.current_user_id', true)::uuid);
+
+-- ── Updated Timestamp Trigger ─────────────────────────────
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_updated_at_users
+    BEFORE UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER set_updated_at_documents
+    BEFORE UPDATE ON regulatory_documents
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER set_updated_at_enrichments
+    BEFORE UPDATE ON document_enrichments
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER set_updated_at_reports
+    BEFORE UPDATE ON compliance_reports
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ── Seed Data ─────────────────────────────────────────────
+-- Default admin user (password: admin123 — change immediately in production)
 INSERT INTO users (email, password_hash, full_name, role) VALUES
 ('admin@regulatorai.com', '$2b$12$LJ3m4ys3L3Kj5ZI6v6K9/.jQ8X8F7z9Q8U0V1Y2W3X4Z5A6B7C8D9', 'System Admin', 'admin');
 
