@@ -2,10 +2,12 @@
 
 > Enterprise-grade system using AI agents to monitor, analyze, and summarize global AI regulations and generate compliance-ready outputs.
 
-![Architecture](docs/architecture/c4-context.md)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.11+-green.svg)
 ![React](https://img.shields.io/badge/react-18+-blue.svg)
+![Tests](https://img.shields.io/badge/tests-236%20passing-brightgreen.svg)
+![Security](https://img.shields.io/badge/security-113%20tests-blue.svg)
+![Coverage](https://img.shields.io/badge/coverage-80%25%2B-green.svg)
 
 ---
 
@@ -18,7 +20,8 @@
 5. [Local Development Setup](#local-development-setup)
 6. [Cloud Deployment](#cloud-deployment)
 7. [Testing](#testing)
-8. [Project Structure](#project-structure)
+8. [Documentation](#documentation)
+9. [Project Structure](#project-structure)
 
 ---
 
@@ -264,6 +267,21 @@ cd frontend && npx playwright test
 ```bash
 cd scripts && locust -f load_test.py --host=http://localhost:8000
 ```
+
+---
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [User Guide](docs/user-guide.md) | Getting started, features, admin guide |
+| [API Reference](docs/api-reference.md) | Endpoints, curl examples, rate limits |
+| [Security](docs/security.md) | Security architecture, encryption, disclosure policy |
+| [Architecture](docs/architecture/) | C4 diagrams, sequence diagrams, ADRs |
+| [Runbook](docs/runbook.md) | Operational procedures: restart, backup, key rotation |
+| [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions |
+| [Contributing](CONTRIBUTING.md) | Development setup, coding standards, security guidelines |
+| [Changelog](CHANGELOG.md) | Version history |
 
 ---
 
