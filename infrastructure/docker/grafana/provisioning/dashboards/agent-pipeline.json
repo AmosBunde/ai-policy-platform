@@ -1,0 +1,122 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Documents Processed per Hour",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "increase(agent_documents_processed_total[1h])",
+          "legendFormat": "Processed"
+        }
+      ]
+    },
+    {
+      "title": "Queue Depth",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "expr": "ingestion_queue_depth",
+          "legendFormat": "Pending"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 50 }, { "color": "red", "value": 200 } ] }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Total Token Usage (1h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "increase(llm_tokens_total[1h])",
+          "legendFormat": "Tokens"
+        }
+      ]
+    },
+    {
+      "title": "Estimated Cost ($/hr)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "expr": "increase(llm_tokens_total[1h]) / 1000 * 0.01",
+          "legendFormat": "Cost"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "currencyUSD" },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Processing Time per Document",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(agent_processing_duration_seconds_bucket[5m]))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.50, rate(agent_processing_duration_seconds_bucket[5m]))",
+          "legendFormat": "p50"
+        }
+      ]
+    },
+    {
+      "title": "Token Usage Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        {
+          "expr": "rate(llm_tokens_total[5m]) * 60",
+          "legendFormat": "tokens/min"
+        }
+      ]
+    },
+    {
+      "title": "Pipeline Node Duration",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "rate(agent_node_duration_seconds_sum[5m]) / rate(agent_node_duration_seconds_count[5m])",
+          "legendFormat": "{{ node }}"
+        }
+      ]
+    },
+    {
+      "title": "Ingestion Queue Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
+      "targets": [
+        {
+          "expr": "ingestion_queue_depth",
+          "legendFormat": "queue depth"
+        },
+        {
+          "expr": "rate(ingestion_docs_processed_total[5m]) * 60",
+          "legendFormat": "docs/min processed"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["regulatorai", "agent", "pipeline"],
+  "templating": { "list": [] },
+  "time": { "from": "now-3h", "to": "now" },
+  "title": "RegulatorAI - Agent Pipeline",
+  "uid": "regulatorai-agent-pipeline"
+}

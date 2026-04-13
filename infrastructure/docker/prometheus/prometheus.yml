@@ -1,34 +1,86 @@
 global:
   scrape_interval: 15s
+  scrape_timeout: 10s
   evaluation_interval: 15s
+
+rule_files:
+  - "/etc/prometheus/alerts.yml"
 
 scrape_configs:
   - job_name: "gateway"
     static_configs:
       - targets: ["gateway-service:8000"]
+        labels:
+          service: "gateway"
+          tier: "api"
     metrics_path: "/metrics"
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: "(.+):\\d+"
+        replacement: "${1}"
 
   - job_name: "ingestion"
     static_configs:
       - targets: ["ingestion-service:8001"]
+        labels:
+          service: "ingestion"
+          tier: "backend"
     metrics_path: "/metrics"
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: "(.+):\\d+"
+        replacement: "${1}"
 
   - job_name: "agent"
     static_configs:
       - targets: ["agent-service:8002"]
+        labels:
+          service: "agent"
+          tier: "backend"
     metrics_path: "/metrics"
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: "(.+):\\d+"
+        replacement: "${1}"
 
   - job_name: "compliance"
     static_configs:
       - targets: ["compliance-service:8003"]
+        labels:
+          service: "compliance"
+          tier: "backend"
     metrics_path: "/metrics"
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: "(.+):\\d+"
+        replacement: "${1}"
 
   - job_name: "search"
     static_configs:
       - targets: ["search-service:8004"]
+        labels:
+          service: "search"
+          tier: "backend"
     metrics_path: "/metrics"
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: "(.+):\\d+"
+        replacement: "${1}"
 
   - job_name: "notification"
     static_configs:
       - targets: ["notification-service:8005"]
+        labels:
+          service: "notification"
+          tier: "backend"
     metrics_path: "/metrics"
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: "(.+):\\d+"
+        replacement: "${1}"

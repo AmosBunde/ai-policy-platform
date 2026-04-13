@@ -1,0 +1,110 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Auth Failure Rate (/min)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(auth_failures_total[1m]) * 60",
+          "legendFormat": "failures/min"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "custom": { "lineWidth": 2, "fillOpacity": 15 },
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 20 } ] }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Rate Limit Hits",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(rate_limit_hits_total[5m]) * 60",
+          "legendFormat": "{{ path }} - hits/min"
+        }
+      ]
+    },
+    {
+      "title": "Blocked Requests (429s)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "increase(http_requests_total{status=\"429\"}[1h])",
+          "legendFormat": "Last hour"
+        }
+      ]
+    },
+    {
+      "title": "Auth Failures (1h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 8 },
+      "targets": [
+        {
+          "expr": "increase(auth_failures_total[1h])",
+          "legendFormat": "Last hour"
+        }
+      ]
+    },
+    {
+      "title": "Successful Logins (1h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 8 },
+      "targets": [
+        {
+          "expr": "increase(auth_successes_total[1h])",
+          "legendFormat": "Last hour"
+        }
+      ]
+    },
+    {
+      "title": "Anomalous Traffic Patterns",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total[1m])) by (job) / avg_over_time(sum(rate(http_requests_total[1m])) by (job)[1h:1m])",
+          "legendFormat": "{{ job }} traffic ratio"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2 },
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 3 }, { "color": "red", "value": 5 } ] }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Top Blocked IPs",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
+      "targets": [
+        {
+          "expr": "topk(10, sum(increase(rate_limit_hits_total[1h])) by (client_ip))",
+          "legendFormat": "{{ client_ip }}",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["regulatorai", "security"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "RegulatorAI - Security",
+  "uid": "regulatorai-security"
+}
