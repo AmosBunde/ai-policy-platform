@@ -1,8 +1,30 @@
-import { Outlet } from "react-router-dom";
+import { useEffect } from "react";
+import { Outlet, useNavigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 
 export function MainLayout() {
+  const navigate = useNavigate();
+
+  // Cmd+K (Mac) / Ctrl+K (Windows) — global search shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        navigate("/search");
+        // Focus the search input after navigation
+        setTimeout(() => {
+          const input = document.querySelector<HTMLInputElement>(
+            'input[aria-label="Search"]',
+          );
+          input?.focus();
+        }, 100);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [navigate]);
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
