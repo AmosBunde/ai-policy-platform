@@ -1,18 +1,42 @@
 {
     email admin@regulatorai.com
+    # Automatic TLS via Let's Encrypt (default in Caddy)
+    # OCSP stapling enabled by default
+}
+
+(security_headers) {
+    header {
+        # HSTS — force HTTPS for 1 year including subdomains
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # Prevent MIME type sniffing
+        X-Content-Type-Options "nosniff"
+        # Prevent clickjacking
+        X-Frame-Options "DENY"
+        # XSS protection
+        X-XSS-Protection "1; mode=block"
+        # CSP
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
+        # Referrer policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Permissions policy
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        # Remove server header
+        -Server
+    }
+}
+
+(rate_limit) {
+    # Rate limiting: 100 requests per minute per IP for API endpoints
+    # Requires caddy-rate-limit plugin or use as documentation
+    # rate_limit {remote.ip} 100r/m
 }
 
 app.regulatorai.com {
-    # Frontend
-    handle / {
-        reverse_proxy dashboard:3000
-    }
-    handle /assets/* {
-        reverse_proxy dashboard:3000
-    }
+    import security_headers
 
-    # API
+    # ── API routes ────────────────────────────────────────
     handle /api/* {
+        import rate_limit
         reverse_proxy gateway-service:8000
     }
     handle /docs {
@@ -25,18 +49,34 @@ app.regulatorai.com {
         reverse_proxy gateway-service:8000
     }
 
-    # Monitoring (restrict to internal)
+    # ── Frontend ──────────────────────────────────────────
+    handle / {
+        reverse_proxy dashboard:3000
+    }
+    handle /assets/* {
+        reverse_proxy dashboard:3000
+    }
+
+    # ── Monitoring (restrict to internal) ─────────────────
     handle /grafana/* {
+        # Only allow internal/VPN IPs
+        @blocked not remote_ip 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+        respond @blocked 403
         reverse_proxy grafana:3000
     }
 
-    # Default to frontend
+    # ── Default to frontend (SPA routing) ─────────────────
     handle {
         reverse_proxy dashboard:3000
     }
 
+    # ── Logging ───────────────────────────────────────────
     log {
-        output file /var/log/caddy/access.log
+        output file /var/log/caddy/access.log {
+            roll_size 100mb
+            roll_keep 10
+            roll_keep_for 720h
+        }
         format json
     }
 }

@@ -1,0 +1,32 @@
+{{- $root := . -}}
+{{- $services := list
+  (dict "name" "gateway"      "port" 8000)
+  (dict "name" "ingestion"    "port" 8001)
+  (dict "name" "agent"        "port" 8002)
+  (dict "name" "compliance"   "port" 8003)
+  (dict "name" "search"       "port" 8004)
+  (dict "name" "notification" "port" 8005)
+  (dict "name" "dashboard"    "port" 3000)
+}}
+
+{{- range $svc := $services }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $root.Release.Name }}-{{ $svc.name }}
+  labels:
+    {{- include "regulatorai.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $svc.name }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ $svc.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: {{ $root.Chart.Name }}
+    app.kubernetes.io/instance: {{ $root.Release.Name }}
+    app.kubernetes.io/component: {{ $svc.name }}
+{{- end }}

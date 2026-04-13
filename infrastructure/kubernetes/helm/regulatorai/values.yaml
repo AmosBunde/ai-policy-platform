@@ -1,0 +1,215 @@
+# Default values for RegulatorAI (development)
+
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  environment: development
+
+# ── Gateway Service ────────────────────────────────────────
+gateway:
+  replicaCount: 1
+  image:
+    repository: regulatorai/gateway-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  env:
+    APP_ENV: development
+    LOG_LEVEL: INFO
+
+# ── Ingestion Service ──────────────────────────────────────
+ingestion:
+  replicaCount: 1
+  image:
+    repository: regulatorai/ingestion-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8001
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# ── Agent Service ──────────────────────────────────────────
+agent:
+  replicaCount: 1
+  image:
+    repository: regulatorai/agent-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8002
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 1Gi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilization: 70
+
+# ── Compliance Service ─────────────────────────────────────
+compliance:
+  replicaCount: 1
+  image:
+    repository: regulatorai/compliance-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8003
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# ── Search Service ─────────────────────────────────────────
+search:
+  replicaCount: 1
+  image:
+    repository: regulatorai/search-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8004
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilization: 70
+
+# ── Notification Service ───────────────────────────────────
+notification:
+  replicaCount: 1
+  image:
+    repository: regulatorai/notification-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8005
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+# ── Dashboard (Frontend) ───────────────────────────────────
+dashboard:
+  replicaCount: 1
+  image:
+    repository: regulatorai/dashboard
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+# ── Celery Worker ──────────────────────────────────────────
+celeryWorker:
+  replicaCount: 1
+  image:
+    repository: regulatorai/ingestion-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  command: ["celery", "-A", "src.tasks", "worker", "--loglevel=info", "--concurrency=4"]
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+# ── Celery Beat ────────────────────────────────────────────
+celeryBeat:
+  replicaCount: 1
+  image:
+    repository: regulatorai/ingestion-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  command: ["celery", "-A", "src.tasks", "beat", "--loglevel=info"]
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
+# ── Ingress ────────────────────────────────────────────────
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: 10m
+  host: app.regulatorai.com
+  tls:
+    secretName: regulatorai-tls
+
+# ── Pod Security Context (applied to ALL pods) ────────────
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+containerSecurityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# ── Network Policy ─────────────────────────────────────────
+networkPolicy:
+  enabled: true
+
+# ── External services (connection strings from secrets) ────
+externalSecrets:
+  databaseUrl: ""
+  redisUrl: ""
+  elasticsearchUrl: ""
+  jwtSecret: ""
+  openaiApiKey: ""

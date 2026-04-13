@@ -1,0 +1,48 @@
+{{- if .Values.agent.hpa.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-agent
+  labels:
+    {{- include "regulatorai.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-agent
+  minReplicas: {{ .Values.agent.hpa.minReplicas }}
+  maxReplicas: {{ .Values.agent.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.agent.hpa.targetCPUUtilization }}
+{{- end }}
+
+---
+{{- if .Values.search.hpa.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-search
+  labels:
+    {{- include "regulatorai.labels" . | nindent 4 }}
+    app.kubernetes.io/component: search
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-search
+  minReplicas: {{ .Values.search.hpa.minReplicas }}
+  maxReplicas: {{ .Values.search.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.search.hpa.targetCPUUtilization }}
+{{- end }}
