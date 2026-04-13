@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  labels:
+    {{- include "regulatorai.labels" . | nindent 4 }}
+data:
+  APP_ENV: {{ .Values.gateway.env.APP_ENV | default .Values.global.environment | quote }}
+  LOG_LEVEL: {{ .Values.gateway.env.LOG_LEVEL | default "INFO" | quote }}
+  GATEWAY_PORT: "8000"
+  INGESTION_PORT: "8001"
+  AGENT_PORT: "8002"
+  COMPLIANCE_PORT: "8003"
+  SEARCH_PORT: "8004"
+  NOTIFICATION_PORT: "8005"

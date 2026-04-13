@@ -1,0 +1,106 @@
+# Production overrides for RegulatorAI
+
+global:
+  environment: production
+
+gateway:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  env:
+    APP_ENV: production
+    LOG_LEVEL: WARNING
+
+ingestion:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+agent:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: "1"
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 1Gi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilization: 70
+
+compliance:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+search:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilization: 70
+
+notification:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+dashboard:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+celeryWorker:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+celeryBeat:
+  replicaCount: 1
+
+ingress:
+  enabled: true
+  host: app.regulatorai.com
+  tls:
+    secretName: regulatorai-tls-prod

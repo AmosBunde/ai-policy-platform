@@ -1,0 +1,151 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: regulatorai-db-backup
+  labels:
+    app.kubernetes.io/name: regulatorai
+    app.kubernetes.io/component: database-backup
+spec:
+  schedule: "0 3 * * *"  # Daily at 3:00 AM UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: regulatorai
+            app.kubernetes.io/component: database-backup
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          serviceAccountName: regulatorai-backup-sa
+          containers:
+            - name: pg-backup
+              image: postgres:16-alpine
+              securityContext:
+                readOnlyRootFilesystem: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -euo pipefail
+
+                  TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+                  BACKUP_FILE="/tmp/backup/regulatorai-${TIMESTAMP}.sql.gz"
+                  S3_KEY="backups/daily/regulatorai-${TIMESTAMP}.sql.gz"
+
+                  echo "[$(date)] Starting database backup..."
+
+                  # Dump database, compress, and encrypt with AES-256
+                  PGPASSWORD="${DB_PASSWORD}" pg_dump \
+                    --host="${DB_HOST}" \
+                    --port="${DB_PORT}" \
+                    --username="${DB_USER}" \
+                    --dbname="${DB_NAME}" \
+                    --format=custom \
+                    --compress=9 \
+                    --no-owner \
+                    --no-privileges \
+                    --verbose \
+                    > "${BACKUP_FILE}" 2>/tmp/backup/pg_dump.log
+
+                  BACKUP_SIZE=$(stat -f%z "${BACKUP_FILE}" 2>/dev/null || stat -c%s "${BACKUP_FILE}")
+                  echo "[$(date)] Backup created: ${BACKUP_SIZE} bytes"
+
+                  # Upload to S3 with AES-256 server-side encryption
+                  aws s3 cp "${BACKUP_FILE}" "s3://${S3_BUCKET}/${S3_KEY}" \
+                    --sse aws:kms \
+                    --storage-class STANDARD_IA \
+                    --no-progress
+
+                  echo "[$(date)] Backup uploaded to s3://${S3_BUCKET}/${S3_KEY}"
+
+                  # Clean up backups older than 30 days
+                  CUTOFF=$(date -d '30 days ago' +%Y%m%d 2>/dev/null || date -v-30d +%Y%m%d)
+                  aws s3 ls "s3://${S3_BUCKET}/backups/daily/" | while read -r line; do
+                    FILE_DATE=$(echo "${line}" | grep -oE 'regulatorai-[0-9]{8}' | grep -oE '[0-9]{8}' || true)
+                    if [ -n "${FILE_DATE}" ] && [ "${FILE_DATE}" -lt "${CUTOFF}" ]; then
+                      FILE_NAME=$(echo "${line}" | awk '{print $NF}')
+                      echo "[$(date)] Deleting old backup: ${FILE_NAME}"
+                      aws s3 rm "s3://${S3_BUCKET}/backups/daily/${FILE_NAME}"
+                    fi
+                  done
+
+                  echo "[$(date)] Backup complete."
+              env:
+                - name: DB_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: regulatorai-backup-secrets
+                      key: DB_HOST
+                - name: DB_PORT
+                  value: "5432"
+                - name: DB_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: regulatorai-backup-secrets
+                      key: DB_USER
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: regulatorai-backup-secrets
+                      key: DB_PASSWORD
+                - name: DB_NAME
+                  value: regulatorai
+                - name: S3_BUCKET
+                  valueFrom:
+                    configMapKeyRef:
+                      name: regulatorai-backup-config
+                      key: S3_BUCKET
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp/backup
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 256Mi
+                limits:
+                  cpu: "1"
+                  memory: 1Gi
+          volumes:
+            - name: tmp
+              emptyDir:
+                medium: Memory
+                sizeLimit: 2Gi
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: regulatorai-backup-config
+  labels:
+    app.kubernetes.io/name: regulatorai
+    app.kubernetes.io/component: database-backup
+data:
+  S3_BUCKET: regulatorai-prod-db-backups
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: regulatorai-backup-sa
+  labels:
+    app.kubernetes.io/name: regulatorai
+    app.kubernetes.io/component: database-backup
+  annotations:
+    # IRSA: associate with IAM role that has S3 write access to backup bucket
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/regulatorai-backup-role
