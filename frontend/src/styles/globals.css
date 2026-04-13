@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg: 248 250 252;
+    --color-surface: 255 255 255;
+    --color-text: 15 23 42;
+    --color-text-muted: 100 116 139;
+    --color-border: 226 232 240;
+    --color-accent: 245 158 11;
+  }
+
+  .dark {
+    --color-bg: 15 23 42;
+    --color-surface: 30 41 59;
+    --color-text: 248 250 252;
+    --color-text-muted: 148 163 184;
+    --color-border: 51 65 85;
+    --color-accent: 245 158 11;
+  }
+
+  body {
+    @apply bg-navy-50 text-slate-900 dark:bg-navy-900 dark:text-slate-100 font-sans antialiased;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/80 dark:bg-surface/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700;
+  }
+}

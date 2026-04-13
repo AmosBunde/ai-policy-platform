@@ -13,11 +13,23 @@ RUN npm run build
 # Stage 2: Serve
 FROM nginx:1.25-alpine
 
-# SPA routing support
+# Security: disable server version header
+RUN sed -i 's/# server_tokens off;/server_tokens off;/' /etc/nginx/nginx.conf || true
+
+# Nginx config: SPA routing, security headers, gzip
 RUN echo 'server { \
     listen 3000; \
+    server_tokens off; \
     root /usr/share/nginx/html; \
     index index.html; \
+    gzip on; \
+    gzip_types text/plain text/css application/json application/javascript text/xml; \
+    gzip_min_length 256; \
+    add_header X-Content-Type-Options "nosniff" always; \
+    add_header X-Frame-Options "DENY" always; \
+    add_header X-XSS-Protection "1; mode=block" always; \
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always; \
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always; \
     location / { \
         try_files $uri $uri/ /index.html; \
     } \
