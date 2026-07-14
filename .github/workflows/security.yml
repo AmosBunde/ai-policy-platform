@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Vulnerability scan (report to code scanning)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scanners: vuln,misconfig,secret
@@ -49,7 +49,7 @@ jobs:
         with:
           sarif_file: trivy-results.sarif
       - name: Fail on CRITICAL vulnerabilities
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scanners: vuln
@@ -60,7 +60,6 @@ jobs:
   npm-audit:
     name: npm audit (report-only)
     runs-on: ubuntu-latest
-    continue-on-error: true
     defaults:
       run:
         working-directory: frontend
@@ -72,4 +71,5 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
-      - run: npm audit --audit-level=high
+      # Report-only: findings appear in the log without failing the check
+      - run: npm audit --audit-level=high || true
