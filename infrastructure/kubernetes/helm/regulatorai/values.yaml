@@ -212,4 +212,5 @@ externalSecrets:
   redisUrl: ""
   elasticsearchUrl: ""
   jwtSecret: ""
+  internalServiceToken: ""
   openaiApiKey: ""

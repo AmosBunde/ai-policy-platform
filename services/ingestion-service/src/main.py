@@ -9,8 +9,13 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Respons
 from prometheus_client import Counter, Gauge, Histogram, make_asgi_app
 
 from shared.config.settings import get_settings
+from shared.utils.errors import register_exception_handlers
+from shared.utils.internal_auth import require_internal_token
+from shared.utils.logging import RequestIdMiddleware, configure_logging
 
 settings = get_settings()
+
+configure_logging("ingestion-service", settings.log_level)
 
 # ── Prometheus metrics ────────────────────────────────────
 http_requests_total = Counter(
@@ -72,7 +77,11 @@ app = FastAPI(
     title="RegulatorAI Ingestion Service",
     version=settings.app_version,
     lifespan=lifespan,
+    dependencies=[Depends(require_internal_token)],
 )
+
+app.add_middleware(RequestIdMiddleware)
+register_exception_handlers(app)
 
 
 @app.middleware("http")

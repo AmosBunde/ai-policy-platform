@@ -1,6 +1,7 @@
 """Structured logging with secret masking and request ID middleware."""
 import logging
 import re
+import time
 import uuid
 
 import structlog
@@ -88,22 +89,52 @@ def configure_logging(service_name: str, level: str = "INFO") -> None:
     structlog.contextvars.bind_contextvars(service=service_name)
 
 
-class RequestIdMiddleware(BaseHTTPMiddleware):
-    """Middleware that generates a UUID request_id for each request.
+REQUEST_ID_HEADER = "X-Request-ID"
 
+# Request IDs must look like UUIDs — anything else from the outside is
+# discarded rather than reflected into logs and response headers.
+_REQUEST_ID_RE = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
+
+
+def current_request_id() -> str | None:
+    """Return the request ID bound to the current context, if any."""
+    return structlog.contextvars.get_contextvars().get("request_id")
+
+
+def propagation_headers() -> dict[str, str]:
+    """Headers to attach to outgoing service-to-service calls so the
+    request ID generated at the edge flows through the whole mesh."""
+    request_id = current_request_id()
+    return {REQUEST_ID_HEADER: request_id} if request_id else {}
+
+
+class RequestIdMiddleware(BaseHTTPMiddleware):
+    """Middleware that binds a request_id to every request.
+
+    - Honors a valid incoming X-Request-ID (set by the gateway) so IDs
+      propagate end-to-end; otherwise generates a UUID
     - Adds request_id to structlog context vars for all log entries
     - Returns request_id in X-Request-ID response header
+    - Logs request start/finish with method, path, status, duration_ms
     - Skips logging request bodies on auth endpoints
     """
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
-        request_id = str(uuid.uuid4())
+        incoming = request.headers.get(REQUEST_ID_HEADER, "")
+        if _REQUEST_ID_RE.match(incoming):
+            request_id = incoming
+        else:
+            request_id = str(uuid.uuid4())
         structlog.contextvars.bind_contextvars(request_id=request_id)
+        request.state.request_id = request_id
 
         logger = structlog.get_logger()
         path = request.url.path
+        start = time.perf_counter()
 
         if path not in _AUTH_PATHS:
             await logger.ainfo(
@@ -113,13 +144,14 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
             )
 
         response = await call_next(request)
-        response.headers["X-Request-ID"] = request_id
+        response.headers[REQUEST_ID_HEADER] = request_id
 
         await logger.ainfo(
             "request_completed",
             method=request.method,
             path=path,
             status_code=response.status_code,
+            duration_ms=round((time.perf_counter() - start) * 1000, 2),
         )
 
         structlog.contextvars.unbind_contextvars("request_id")

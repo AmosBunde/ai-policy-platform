@@ -8,6 +8,12 @@ COPY package.json package-lock.json* ./
 RUN npm ci
 
 COPY . .
+
+# Vite inlines VITE_* variables at build time. Default is empty so the app
+# falls back to same-origin "/api/v1" (reverse-proxy setup); override with
+# --build-arg VITE_API_URL=https://api.example.com/api/v1 for split origins.
+ARG VITE_API_URL=""
+ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
 # Stage 2: Serve

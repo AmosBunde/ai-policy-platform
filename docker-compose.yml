@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   # ─── Data Stores ────────────────────────────────────────
   postgres:
@@ -274,10 +272,13 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        # Baked into the bundle at build time (Vite). The default targets the
+        # gateway published on the host; leave empty to use same-origin /api/v1
+        # behind a reverse proxy.
+        VITE_API_URL: http://localhost:${GATEWAY_PORT:-8000}/api/v1
     container_name: regulatorai-dashboard
     read_only: true
-    environment:
-      - REACT_APP_API_URL=http://localhost:${GATEWAY_PORT}
     depends_on:
       - gateway-service
     healthcheck:
