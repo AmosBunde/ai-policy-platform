@@ -74,6 +74,11 @@ spec:
                 secretKeyRef:
                   name: {{ $root.Release.Name }}-secrets
                   key: JWT_SECRET
+            - name: INTERNAL_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $root.Release.Name }}-secrets
+                  key: INTERNAL_SERVICE_TOKEN
             {{- if eq $svc.name "search" }}
             - name: ELASTICSEARCH_URL
               valueFrom:

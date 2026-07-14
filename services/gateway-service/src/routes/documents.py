@@ -6,6 +6,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from shared.config.settings import get_settings
+from shared.utils.internal_auth import internal_auth_headers
 from shared.models.orm import User
 from src.middleware.auth import get_current_user
 
@@ -45,7 +46,7 @@ async def list_documents(
     if jurisdiction:
         params["jurisdiction"] = jurisdiction[:100]
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, headers=internal_auth_headers()) as client:
         try:
             resp = await client.get(f"{_INGESTION_BASE}/api/v1/documents", params=params)
             return resp.json()
@@ -60,7 +61,7 @@ async def get_document(
 ):
     """Get a specific document with its enrichment data."""
     doc_id = _validate_uuid(document_id)
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, headers=internal_auth_headers()) as client:
         try:
             resp = await client.get(f"{_INGESTION_BASE}/api/v1/documents/{doc_id}")
             if resp.status_code == 404:
@@ -77,7 +78,7 @@ async def upload_document(
 ):
     """Manually upload a regulatory document."""
     body = await request.json()
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, headers=internal_auth_headers()) as client:
         try:
             resp = await client.post(
                 f"{_INGESTION_BASE}/api/v1/documents",
@@ -95,7 +96,7 @@ async def get_enrichment(
 ):
     """Get AI enrichment data for a document."""
     doc_id = _validate_uuid(document_id)
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, headers=internal_auth_headers()) as client:
         try:
             resp = await client.get(f"{_AGENT_BASE}/api/v1/enrichments/{doc_id}")
             if resp.status_code == 404:

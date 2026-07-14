@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     elasticsearch_port: int = 9200
     elasticsearch_password: str = ""
 
+    # Service-to-service auth (shared token attached by the gateway,
+    # verified by all internal services; min 32 chars when set)
+    internal_service_token: str = ""
+
     # JWT
     jwt_secret: str = ""
     jwt_algorithm: str = "HS256"

@@ -3,6 +3,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from shared.config.settings import get_settings
+from shared.utils.internal_auth import internal_auth_headers
 from shared.models.orm import User
 from shared.models.schemas import SearchRequest, SearchResponse
 from src.middleware.auth import get_current_user
@@ -19,7 +20,7 @@ async def search_documents(
     current_user: User = Depends(get_current_user),
 ):
     """Hybrid search across regulatory documents."""
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, headers=internal_auth_headers()) as client:
         try:
             resp = await client.post(
                 f"{_SEARCH_BASE}/api/v1/search",
@@ -37,7 +38,7 @@ async def search_suggestions(
 ):
     """Autocomplete search suggestions."""
     safe_q = q[:200].strip()
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, headers=internal_auth_headers()) as client:
         try:
             resp = await client.get(
                 f"{_SEARCH_BASE}/api/v1/search/suggest",
@@ -51,7 +52,7 @@ async def search_suggestions(
 @router.get("/facets")
 async def get_facets(current_user: User = Depends(get_current_user)):
     """Get available search facets."""
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, headers=internal_auth_headers()) as client:
         try:
             resp = await client.get(f"{_SEARCH_BASE}/api/v1/search/facets")
             return resp.json()

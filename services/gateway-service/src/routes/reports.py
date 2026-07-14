@@ -5,6 +5,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from shared.config.settings import get_settings
+from shared.utils.internal_auth import internal_auth_headers
 from shared.models.orm import User
 from shared.models.schemas import ComplianceReportCreate, ComplianceReportResponse
 from src.middleware.auth import get_current_user
@@ -31,7 +32,7 @@ async def create_report(
     payload = request.model_dump(mode="json")
     payload["created_by"] = str(current_user.id)
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, headers=internal_auth_headers()) as client:
         try:
             resp = await client.post(
                 f"{_COMPLIANCE_BASE}/api/v1/reports",
@@ -50,7 +51,7 @@ async def list_reports(
 ):
     """List all compliance reports."""
     params = {"page": min(max(page, 1), 1000), "page_size": min(max(page_size, 1), 100)}
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, headers=internal_auth_headers()) as client:
         try:
             resp = await client.get(
                 f"{_COMPLIANCE_BASE}/api/v1/reports",
@@ -68,7 +69,7 @@ async def get_report(
 ):
     """Get a specific compliance report."""
     rid = _validate_uuid(report_id)
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, headers=internal_auth_headers()) as client:
         try:
             resp = await client.get(f"{_COMPLIANCE_BASE}/api/v1/reports/{rid}")
             if resp.status_code == 404:
@@ -87,7 +88,7 @@ async def download_report(
     """Download report in specified format."""
     rid = _validate_uuid(report_id)
     safe_format = format[:10] if format else "pdf"
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, headers=internal_auth_headers()) as client:
         try:
             resp = await client.get(
                 f"{_COMPLIANCE_BASE}/api/v1/reports/{rid}/download",
