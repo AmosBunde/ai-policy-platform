@@ -2,12 +2,9 @@
 
 > Enterprise-grade system using AI agents to monitor, analyze, and summarize global AI regulations and generate compliance-ready outputs.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.11+-green.svg)
-![React](https://img.shields.io/badge/react-18+-blue.svg)
-![Tests](https://img.shields.io/badge/tests-236%20passing-brightgreen.svg)
-![Security](https://img.shields.io/badge/security-113%20tests-blue.svg)
-![Coverage](https://img.shields.io/badge/coverage-80%25%2B-green.svg)
+[![CI](https://github.com/AmosBunde/ai-policy-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/AmosBunde/ai-policy-platform/actions/workflows/ci.yml)
+[![Security](https://github.com/AmosBunde/ai-policy-platform/actions/workflows/security.yml/badge.svg)](https://github.com/AmosBunde/ai-policy-platform/actions/workflows/security.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ---
 
@@ -16,10 +13,10 @@
 1. [Overview](#overview)
 2. [Architecture](#architecture)
 3. [Tech Stack](#tech-stack)
-4. [Services](#services)
-5. [Local Development Setup](#local-development-setup)
-6. [Cloud Deployment](#cloud-deployment)
-7. [Testing](#testing)
+4. [Quickstart](#quickstart)
+5. [Accessing the Stack](#accessing-the-stack)
+6. [Testing](#testing)
+7. [Deployment Workflow](#deployment-workflow)
 8. [Documentation](#documentation)
 9. [Project Structure](#project-structure)
 
@@ -35,25 +32,39 @@ RegulatorAI is a microservices-based platform that:
 - Generates compliance reports and draft responses
 - Supports full-text and semantic search across legal/policy data
 - Provides real-time dashboards tracking regulatory risks and updates
-- Integrates with workflows for legal and policy teams
 
 ---
 
 ## Architecture
 
-The platform follows an event-driven microservices architecture with the following core services:
+Event-driven microservices behind a single API gateway. **Only the gateway is
+exposed to the host in development** — every other service is reachable solely
+on the internal Docker network (in production, a Caddy reverse proxy on
+80/443 is the single entry point).
 
-| Service | Port | Description |
-|---------|------|-------------|
-| Gateway Service | 8000 | API Gateway, auth, rate limiting |
-| Ingestion Service | 8001 | Document ingestion, parsing, normalization |
-| Agent Service | 8002 | LangGraph AI agents for analysis |
-| Compliance Service | 8003 | Report generation, draft responses |
-| Search Service | 8004 | Elasticsearch + vector semantic search |
-| Notification Service | 8005 | Alerts, webhooks, email notifications |
-| Dashboard Service | 3000 | React frontend application |
+### Backend services
 
-See `docs/` directory for C4 diagrams, sequence diagrams, and detailed architecture docs.
+| Service | Internal port | Description |
+|---------|---------------|-------------|
+| Gateway | 8000 | Public API: JWT auth, RBAC, rate limiting, routing to internal services |
+| Ingestion | 8001 | Document crawling (RSS/APIs/uploads), parsing, normalization; Celery workers |
+| Agent | 8002 | LangGraph agents: summarizer, impact ranker, classifier, response drafter |
+| Compliance | 8003 | Compliance report generation (PDF/DOCX), templates, status tracking |
+| Search | 8004 | Hybrid search: Elasticsearch full-text + pgvector semantic similarity |
+| Notification | 8005 | Watch rules and alerts via email, Slack, and webhooks |
+
+### Frontend
+
+`frontend/` — React 18 + TypeScript SPA (Vite, TailwindCSS, TanStack Query,
+Zustand), served by nginx in containers, or by the Vite dev server locally.
+
+### Infrastructure services (internal-only in dev)
+
+PostgreSQL 16 (+pgvector), Redis 7, Elasticsearch 8, Celery worker/beat,
+Prometheus, Grafana.
+
+See [`docs/architecture/`](docs/architecture/) for C4 diagrams, sequence
+diagrams, and ADRs.
 
 ---
 
@@ -62,211 +73,164 @@ See `docs/` directory for C4 diagrams, sequence diagrams, and detailed architect
 **Backend:** Python 3.11+, FastAPI, LangGraph, Celery
 **Frontend:** React 18, TypeScript, TailwindCSS, Recharts, TanStack Query
 **AI/ML:** OpenAI API, LangChain, LangGraph
-**Database:** PostgreSQL 16 (primary), Redis 7 (cache/queue)
-**Search:** Elasticsearch 8.x (full-text), pgvector (semantic)
-**Infrastructure:** Docker, Docker Compose, Kubernetes (Helm), Terraform
-**CI/CD:** GitHub Actions
-**Monitoring:** Prometheus, Grafana, structured logging
+**Data:** PostgreSQL 16 + pgvector, Redis 7, Elasticsearch 8
+**Infrastructure:** Docker Compose, Kubernetes (Helm), Terraform (AWS)
+**CI/CD:** GitHub Actions → GHCR → gated Helm deploy
+**Observability:** Prometheus, Grafana, structured JSON logging with request-ID propagation
 
 ---
 
-## Services
+## Quickstart
 
-### 1. Gateway Service (`services/gateway-service`)
-API Gateway handling authentication (JWT), rate limiting, request routing, and CORS.
-
-### 2. Ingestion Service (`services/ingestion-service`)
-Crawls and ingests regulatory documents from RSS feeds, government APIs, and uploaded PDFs. Normalizes content into a unified schema. Uses Celery for async processing.
-
-### 3. Agent Service (`services/agent-service`)
-LangGraph-orchestrated multi-agent system:
-- **Summarizer Agent**: Extracts key policy changes
-- **Impact Ranker Agent**: Scores impact by region/product
-- **Classifier Agent**: Categorizes by regulatory domain
-- **Drafter Agent**: Generates compliance response drafts
-
-### 4. Compliance Service (`services/compliance-service`)
-Generates structured compliance reports (PDF, DOCX), manages report templates, tracks compliance status per regulation.
-
-### 5. Search Service (`services/search-service`)
-Dual search: Elasticsearch for full-text keyword search, pgvector for semantic similarity. Supports faceted filtering by jurisdiction, date, category.
-
-### 6. Notification Service (`services/notification-service`)
-Event-driven alerts via email, Slack, and webhooks. Users configure watch rules (e.g., "notify me when EU AI Act changes").
-
----
-
-## Local Development Setup
-
-### Prerequisites
-
-- Docker Desktop 4.x+ with Docker Compose v2
-- Python 3.11+
-- Node.js 20 LTS
-- Git
-
-### Step 1: Clone the Repository
+Prerequisites: Docker Desktop 4.x+ (Compose v2), Node.js 20 LTS, Python 3.11+.
 
 ```bash
-git clone https://github.com/your-org/regulatorai.git
-cd regulatorai
-```
+# 1. Clone
+git clone https://github.com/AmosBunde/ai-policy-platform.git
+cd ai-policy-platform
 
-### Step 2: Set Up Environment Variables
-
-```bash
+# 2. Configure secrets (the file documents every variable;
+#    generate secrets with the openssl hints inside it)
 cp .env.example .env
-# Edit .env with your API keys:
-#   OPENAI_API_KEY=sk-...
-#   POSTGRES_PASSWORD=your_secure_password
-#   REDIS_PASSWORD=your_redis_password
-#   JWT_SECRET=your_jwt_secret
-#   ELASTICSEARCH_PASSWORD=your_es_password
-```
 
-### Step 3: Start All Services with Docker Compose
-
-```bash
-# Build and start all services
+# 3. Start the backend stack
 docker compose up --build -d
 
-# Verify all services are running
-docker compose ps
+# 4. Migrate and seed the database
+make migrate && make seed
 
-# Check logs
-docker compose logs -f
+# 5. Run the frontend with hot reload (proxies /api to the gateway)
+cd frontend && npm install && npm run dev
 ```
 
-### Step 4: Initialize the Database
-
-```bash
-# Run database migrations
-docker compose exec gateway-service alembic upgrade head
-
-# Seed initial data (regulatory sources, default templates)
-docker compose exec gateway-service python -m scripts.seed_data
-```
-
-### Step 5: Access the Application
-
-| Component | URL |
-|-----------|-----|
-| Frontend Dashboard | http://localhost:3000 |
-| API Gateway | http://localhost:8000 |
-| API Documentation | http://localhost:8000/docs |
-| Elasticsearch | http://localhost:9200 |
-| Redis Commander | http://localhost:8081 |
-| Prometheus | http://localhost:9090 |
-| Grafana | http://localhost:3001 |
-
-### Step 6: Run Tests
-
-```bash
-# Run all backend tests
-docker compose exec gateway-service pytest --cov=src tests/
-
-# Run frontend tests
-cd frontend && npm test
-
-# Run integration tests
-docker compose -f docker-compose.test.yml up --abort-on-container-exit
-```
+The dashboard is now at **http://localhost:3000** and the API at
+**http://localhost:8000** (interactive docs at `/docs`).
 
 ---
 
-## Cloud Deployment
+## Accessing the Stack
 
-### Option A: Docker Compose on a Cloud VM (AWS EC2 / GCP Compute / Azure VM)
+| Component | URL | Notes |
+|-----------|-----|-------|
+| API Gateway | http://localhost:8000 | Only host-exposed backend service (`GATEWAY_PORT`) |
+| API docs (Swagger / ReDoc) | http://localhost:8000/docs · /redoc | |
+| Frontend (dev) | http://localhost:3000 | Via `npm run dev`; Vite proxies `/api` → gateway |
+| Frontend (prod compose) | http://localhost | Via Caddy (`docker-compose.prod.yml`) |
+| Prometheus, Grafana, Elasticsearch | — | Internal-only by design; see below |
 
-```bash
-# 1. SSH into your cloud VM
-ssh user@your-vm-ip
+To temporarily expose an internal service in development, add a local
+`docker-compose.override.yml` (keep it out of version control):
 
-# 2. Install Docker and Docker Compose
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER
-
-# 3. Clone and configure
-git clone https://github.com/your-org/regulatorai.git
-cd regulatorai
-cp .env.example .env
-nano .env  # Set production values
-
-# 4. Deploy with production compose file
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-
-# 5. Set up SSL with Caddy/Nginx reverse proxy
-# See infrastructure/docker/caddy/Caddyfile for configuration
+```yaml
+services:
+  grafana:
+    ports: ["3001:3000"]
+  prometheus:
+    ports: ["9090:9090"]
 ```
 
-### Option B: Kubernetes (EKS / GKE / AKS)
-
-```bash
-# 1. Configure kubectl for your cluster
-aws eks update-kubeconfig --name regulatorai-cluster --region us-east-1
-# OR
-gcloud container clusters get-credentials regulatorai-cluster --zone us-central1-a
-
-# 2. Create namespace
-kubectl create namespace regulatorai
-
-# 3. Apply secrets
-kubectl apply -f infrastructure/kubernetes/secrets.yml -n regulatorai
-
-# 4. Deploy with Helm
-helm install regulatorai infrastructure/kubernetes/helm/regulatorai \
-  --namespace regulatorai \
-  --values infrastructure/kubernetes/helm/regulatorai/values-prod.yaml
-
-# 5. Verify deployment
-kubectl get pods -n regulatorai
-kubectl get services -n regulatorai
-```
-
-### Option C: Terraform (Infrastructure as Code)
-
-```bash
-# 1. Initialize Terraform
-cd infrastructure/terraform
-terraform init
-
-# 2. Plan the deployment
-terraform plan -var-file="prod.tfvars"
-
-# 3. Apply
-terraform apply -var-file="prod.tfvars"
-
-# 4. Get outputs (endpoints, etc.)
-terraform output
-```
+In production, Grafana is served through Caddy at `/grafana/*`, restricted to
+internal/VPN IP ranges (see `infrastructure/docker/caddy/Caddyfile`).
 
 ---
 
 ## Testing
 
-### Unit Tests
 ```bash
-# Per-service
-cd services/agent-service && pytest tests/unit/ -v
-
-# All services
+# Everything (backend suites + frontend), with a summary
 ./scripts/run_all_tests.sh
-```
 
-### Integration Tests
-```bash
-docker compose -f docker-compose.test.yml up --abort-on-container-exit
-```
+# One backend service
+cd services/gateway-service && PYTHONPATH=../..:. python -m pytest tests -q
 
-### End-to-End Tests
-```bash
+# Frontend unit tests / typecheck
+cd frontend && npx vitest run && npx tsc --noEmit
+
+# Integration tests in ephemeral containers
+make test-integration
+
+# End-to-end (Playwright)
 cd frontend && npx playwright test
-```
 
-### Load Tests
-```bash
+# Load tests (Locust)
 cd scripts && locust -f load_test.py --host=http://localhost:8000
 ```
+
+CI runs lint, all backend suites, frontend typecheck/tests/build, Docker
+builds, and security scans on every pull request (see badges above).
+
+---
+
+## Deployment Workflow
+
+### Pipeline (GitHub Actions)
+
+1. **CI** (`.github/workflows/ci.yml`) — every PR: ruff (blocking on real
+   errors), per-service pytest matrix, frontend typecheck + tests + build,
+   Docker builds for all seven images.
+2. **Security** (`.github/workflows/security.yml`) — every PR + weekly:
+   Bandit (blocking at medium+ severity), Trivy vulnerability/misconfig/secret
+   scans with SARIF upload to code scanning, npm audit.
+3. **Publish & deploy** (`.github/workflows/deploy.yml`) — on push to `main`
+   or a `v*.*.*` tag: builds and pushes all images to GHCR
+   (`ghcr.io/amosbunde/ai-policy-platform/<service>`, tagged `sha-<commit>`,
+   semver, and `latest`), scans the published image, then runs a **gated Helm
+   deploy**: the job only runs when the `DEPLOY_ENABLED` repository variable
+   is `true`, and executes inside the `production` environment — add required
+   reviewers to that environment for a manual approval step.
+
+Secrets to configure (repository or environment level): `KUBE_CONFIG`,
+`JWT_SECRET`, `INTERNAL_SERVICE_TOKEN`, `DATABASE_URL`, `REDIS_URL`,
+`ELASTICSEARCH_URL`, `OPENAI_API_KEY`.
+
+### Infrastructure bootstrap (once per environment)
+
+```bash
+cd infrastructure/terraform
+terraform init
+terraform plan -var-file="prod.tfvars"
+terraform apply -var-file="prod.tfvars"   # VPC, EKS, RDS, ElastiCache, Elasticsearch
+aws eks update-kubeconfig --name regulatorai-cluster --region us-east-1
+```
+
+### Manual Helm deploy / rollback
+
+```bash
+# Deploy (all secret values are REQUIRED — the chart refuses to install
+# with missing secrets rather than falling back to insecure defaults)
+helm upgrade --install regulatorai infrastructure/kubernetes/helm/regulatorai \
+  --namespace regulatorai --create-namespace \
+  -f infrastructure/kubernetes/helm/regulatorai/values-prod.yaml \
+  --set externalSecrets.jwtSecret="$(openssl rand -hex 32)" \
+  --set externalSecrets.internalServiceToken="$(openssl rand -hex 32)" \
+  --set externalSecrets.databaseUrl="postgresql+asyncpg://…" \
+  --set externalSecrets.redisUrl="redis://…" \
+  --set externalSecrets.elasticsearchUrl="http://…" \
+  --set externalSecrets.openaiApiKey="sk-…"
+
+# Verify / roll back
+helm status regulatorai -n regulatorai
+helm rollback regulatorai -n regulatorai   # previous revision, atomic
+```
+
+### Docker Compose on a single VM
+
+```bash
+cp .env.example .env && $EDITOR .env      # production values
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+Caddy terminates TLS on 80/443 and is the only externally exposed service;
+edit `infrastructure/docker/caddy/Caddyfile` for your domain.
+
+### Production checklist
+
+- [ ] All Helm secret values set (install fails loudly if any are missing)
+- [ ] `INTERNAL_SERVICE_TOKEN` and `JWT_SECRET` are unique, ≥32 chars
+- [ ] TLS configured (Caddy or ingress cert-manager)
+- [ ] Database backups verified (`database-backup-cronjob.yaml`; see [Runbook](docs/runbook.md))
+- [ ] HPA limits reviewed in `values-prod.yaml`
+- [ ] Terraform state in a remote, locked backend
 
 ---
 
@@ -288,63 +252,48 @@ cd scripts && locust -f load_test.py --host=http://localhost:8000
 ## Project Structure
 
 ```
-regulatorai/
+ai-policy-platform/
 ├── README.md
-├── docker-compose.yml
-├── docker-compose.prod.yml
-├── docker-compose.test.yml
+├── LICENSE
+├── Makefile
 ├── .env.example
+├── docker-compose.yml            # dev: gateway is the only exposed service
+├── docker-compose.prod.yml       # prod overrides: Caddy, limits, restart policies
+├── docker-compose.test.yml       # ephemeral integration-test stack
 ├── .github/
-│   ├── workflows/
-│   │   ├── ci.yml
-│   │   └── deploy.yml
-│   └── ISSUE_TEMPLATE/
+│   ├── workflows/                # ci.yml · security.yml · deploy.yml
+│   ├── ISSUE_TEMPLATE/
+│   └── dependabot.yml
 ├── docs/
-│   ├── architecture/
-│   │   ├── c4-context.md
-│   │   ├── c4-container.md
-│   │   ├── c4-component.md
-│   │   ├── sequence-diagrams.md
-│   │   └── architecture-decision-records.md
-│   └── diagrams/
-├── frontend/
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── tailwind.config.ts
-│   └── src/
-│       ├── components/
-│       ├── pages/
-│       ├── hooks/
-│       ├── services/
-│       ├── store/
-│       └── types/
+│   └── architecture/             # C4 diagrams, sequence diagrams, ADRs
+├── frontend/                     # React 18 + TS + Vite + Tailwind SPA
+│   ├── tailwind.config.js
+│   └── src/{components,pages,hooks,services,store,styles}
 ├── services/
-│   ├── gateway-service/
-│   ├── ingestion-service/
-│   ├── agent-service/
-│   ├── compliance-service/
-│   ├── search-service/
-│   └── notification-service/
-├── shared/
-│   ├── models/
-│   ├── utils/
-│   └── config/
+│   ├── gateway-service/          # auth, RBAC, rate limiting, routing
+│   ├── ingestion-service/        # crawlers, parsers, Celery tasks
+│   ├── agent-service/            # LangGraph agent pipeline
+│   ├── compliance-service/       # PDF/DOCX report generation
+│   ├── search-service/           # Elasticsearch + pgvector hybrid search
+│   └── notification-service/     # email/Slack/webhook alerts
+├── shared/                       # models, config, security/logging/auth utils
 ├── infrastructure/
-│   ├── docker/
-│   ├── kubernetes/
-│   └── terraform/
+│   ├── docker/                   # Caddy, Prometheus, Grafana configs
+│   ├── kubernetes/helm/          # regulatorai chart (+ values-prod.yaml)
+│   └── terraform/                # VPC, EKS, RDS, ElastiCache, Elasticsearch
 └── scripts/
-    ├── create_issues.sh
     ├── run_all_tests.sh
-    └── seed_data.py
+    ├── seed_data.py
+    └── load_test.py
 ```
 
 ---
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. Open a PR against
+`main`; CI must pass and the PR template's verification checklist applies.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](LICENSE).

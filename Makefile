@@ -6,10 +6,9 @@ help: ## Show this help
 up: ## Start all services
 	docker compose up -d
 	@echo "\nAll services started"
-	@echo "   Dashboard:  http://localhost:3000"
 	@echo "   API:        http://localhost:8000"
 	@echo "   API Docs:   http://localhost:8000/docs"
-	@echo "   Grafana:    http://localhost:3001"
+	@echo "   Dashboard:  cd frontend && npm run dev  ->  http://localhost:3000"
 
 down: ## Stop all services
 	docker compose down
