@@ -56,8 +56,9 @@ logs: ## Tail logs for all services
 logs-service: ## Tail logs for a specific service (usage: make logs-service SVC=gateway-service)
 	docker compose logs -f --tail=100 $(SVC)
 
-clean: ## Remove all containers, volumes, and images
+clean: ## Remove all containers, volumes, images, and local caches
 	docker compose down -v --rmi local
+	find . -type d \( -name .pytest_cache -o -name __pycache__ \) -prune -exec rm -rf {} +
 	@echo "Cleaned up"
 
 ps: ## Show running services
