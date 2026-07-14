@@ -1,5 +1,5 @@
 """Slack webhook delivery with Block Kit formatting."""
-import html
+
 import logging
 
 import httpx
@@ -69,17 +69,19 @@ def build_block_kit_message(
     ]
 
     if detail_url:
-        blocks.append({
-            "type": "actions",
-            "elements": [
-                {
-                    "type": "button",
-                    "text": {"type": "plain_text", "text": "View Details"},
-                    "url": detail_url,
-                    "action_id": "view_details",
-                },
-            ],
-        })
+        blocks.append(
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "View Details"},
+                        "url": detail_url,
+                        "action_id": "view_details",
+                    },
+                ],
+            }
+        )
 
     blocks.append({"type": "divider"})
 
@@ -117,7 +119,9 @@ async def send_slack(
                 logger.info("Slack notification sent: %s", title)
                 return True
             else:
-                logger.error("Slack webhook returned %d: %s", resp.status_code, resp.text[:200])
+                logger.error(
+                    "Slack webhook returned %d: %s", resp.status_code, resp.text[:200]
+                )
                 return False
     except Exception as exc:
         logger.error("Failed to send Slack notification: %s", exc)

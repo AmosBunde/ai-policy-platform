@@ -1,4 +1,5 @@
 """Hybrid search: Reciprocal Rank Fusion combining keyword (ES) and semantic (pgvector)."""
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -57,7 +58,9 @@ def reciprocal_rank_fusion(
     return merged
 
 
-def _determine_source(doc_id: str, keyword_results: list, semantic_results: list) -> str:
+def _determine_source(
+    doc_id: str, keyword_results: list, semantic_results: list
+) -> str:
     """Determine which source(s) contributed this result."""
     in_keyword = any(r["document_id"] == doc_id for r in keyword_results)
     in_semantic = any(r["document_id"] == doc_id for r in semantic_results)

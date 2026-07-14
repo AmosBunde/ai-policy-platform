@@ -1,9 +1,10 @@
 """RegulatorAI Search Service — Elasticsearch + pgvector hybrid search."""
+
 import re
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from prometheus_client import Counter, Histogram, make_asgi_app
 
 from shared.config.settings import get_settings
@@ -18,15 +19,18 @@ configure_logging("search-service", settings.log_level)
 
 # Prometheus metrics
 http_requests_total = Counter(
-    "http_requests_total", "Total HTTP requests",
+    "http_requests_total",
+    "Total HTTP requests",
     ["method", "path", "status"],
 )
 http_request_duration_seconds = Histogram(
-    "http_request_duration_seconds", "HTTP request duration",
+    "http_request_duration_seconds",
+    "HTTP request duration",
     ["method", "path"],
 )
 search_queries_total = Counter(
-    "search_queries_total", "Total search queries",
+    "search_queries_total",
+    "Total search queries",
     ["search_type"],
 )
 
@@ -80,9 +84,13 @@ async def search_documents(request: Request):
     if not safe_query:
         raise HTTPException(status_code=400, detail="Query is required")
     if is_wildcard_only(safe_query):
-        raise HTTPException(status_code=400, detail="Wildcard-only queries are not allowed")
+        raise HTTPException(
+            status_code=400, detail="Wildcard-only queries are not allowed"
+        )
     if len(safe_query) > 500:
-        raise HTTPException(status_code=400, detail="Query exceeds maximum length of 500 characters")
+        raise HTTPException(
+            status_code=400, detail="Query exceeds maximum length of 500 characters"
+        )
 
     search_queries_total.labels(search_type).inc()
 
@@ -100,9 +108,14 @@ async def search_documents(request: Request):
         es = ESClient()
         try:
             result = await es.search(
-                safe_query, jurisdiction=jurisdiction, category=category,
-                urgency_level=urgency_level, date_from=date_from, date_to=date_to,
-                page=page, page_size=page_size,
+                safe_query,
+                jurisdiction=jurisdiction,
+                category=category,
+                urgency_level=urgency_level,
+                date_from=date_from,
+                date_to=date_to,
+                page=page,
+                page_size=page_size,
             )
         finally:
             await es.close()
@@ -145,9 +158,14 @@ async def search_documents(request: Request):
         es = ESClient()
         try:
             es_result = await es.search(
-                safe_query, jurisdiction=jurisdiction, category=category,
-                urgency_level=urgency_level, date_from=date_from, date_to=date_to,
-                page=1, page_size=50,
+                safe_query,
+                jurisdiction=jurisdiction,
+                category=category,
+                urgency_level=urgency_level,
+                date_from=date_from,
+                date_to=date_to,
+                page=1,
+                page_size=50,
             )
         finally:
             await es.close()
@@ -157,7 +175,7 @@ async def search_documents(request: Request):
 
         merged = reciprocal_rank_fusion(es_result["hits"], sem_results)
         start_idx = (page - 1) * page_size
-        paged = merged[start_idx:start_idx + page_size]
+        paged = merged[start_idx : start_idx + page_size]
 
         return {
             "results": paged,
@@ -176,6 +194,7 @@ async def search_suggestions(q: str = ""):
         return {"suggestions": []}
 
     from src.elasticsearch_client import ESClient
+
     es = ESClient()
     try:
         suggestions = await es.suggest(safe_q)
@@ -189,6 +208,7 @@ async def search_suggestions(q: str = ""):
 async def get_facets():
     """Get available search facets."""
     from src.elasticsearch_client import ESClient
+
     es = ESClient()
     try:
         facets = await es.get_facets()
@@ -207,6 +227,7 @@ async def index_document_endpoint(document_id: str, request: Request):
     body = await request.json()
 
     from src.indexer import index_document
+
     await index_document(document_id, body)
 
     return {"status": "indexed", "document_id": document_id}

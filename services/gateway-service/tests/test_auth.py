@@ -1,15 +1,14 @@
 """Tests for authentication endpoints."""
-import uuid
-from datetime import timedelta
+
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
-from conftest import auth_headers, make_test_user
+from conftest import make_test_user
 
-from shared.utils.security import create_access_token, create_refresh_token, password_hash
+from shared.utils.security import create_refresh_token
 from src.main import app
 from shared.utils.database import get_db
 
@@ -47,10 +46,13 @@ class TestLogin:
 
         app.dependency_overrides[get_db] = override_db
         try:
-            response = await client.post("/api/v1/auth/login", json={
-                "email": "login@test.com",
-                "password": "TestPass1",
-            })
+            response = await client.post(
+                "/api/v1/auth/login",
+                json={
+                    "email": "login@test.com",
+                    "password": "TestPass1",
+                },
+            )
             assert response.status_code == 200
             data = response.json()
             assert "access_token" in data
@@ -69,10 +71,13 @@ class TestLogin:
 
         app.dependency_overrides[get_db] = override_db
         try:
-            response = await client.post("/api/v1/auth/login", json={
-                "email": "test@example.com",
-                "password": "WrongPassword1",
-            })
+            response = await client.post(
+                "/api/v1/auth/login",
+                json={
+                    "email": "test@example.com",
+                    "password": "WrongPassword1",
+                },
+            )
             assert response.status_code == 401
             assert response.json()["detail"] == "Invalid credentials"
         finally:
@@ -87,10 +92,13 @@ class TestLogin:
 
         app.dependency_overrides[get_db] = override_db
         try:
-            response = await client.post("/api/v1/auth/login", json={
-                "email": "nobody@test.com",
-                "password": "TestPass1",
-            })
+            response = await client.post(
+                "/api/v1/auth/login",
+                json={
+                    "email": "nobody@test.com",
+                    "password": "TestPass1",
+                },
+            )
             assert response.status_code == 401
             # Generic message — never reveals which field is wrong
             assert response.json()["detail"] == "Invalid credentials"
@@ -107,10 +115,13 @@ class TestLogin:
 
         app.dependency_overrides[get_db] = override_db
         try:
-            response = await client.post("/api/v1/auth/login", json={
-                "email": "test@example.com",
-                "password": "TestPass1",
-            })
+            response = await client.post(
+                "/api/v1/auth/login",
+                json={
+                    "email": "test@example.com",
+                    "password": "TestPass1",
+                },
+            )
             assert response.status_code == 401
             assert response.json()["detail"] == "Invalid credentials"
         finally:
@@ -118,9 +129,9 @@ class TestLogin:
 
     @pytest.mark.asyncio
     async def test_login_missing_email(self, client):
-        response = await client.post("/api/v1/auth/login", json={
-            "password": "testpassword"
-        })
+        response = await client.post(
+            "/api/v1/auth/login", json={"password": "testpassword"}
+        )
         assert response.status_code == 422
 
 
@@ -133,6 +144,7 @@ class TestRegister:
         async def mock_refresh(obj):
             import uuid as uuid_mod
             from datetime import datetime, timezone
+
             obj.id = uuid_mod.uuid4()
             obj.created_at = datetime.now(timezone.utc)
             obj.updated_at = datetime.now(timezone.utc)
@@ -145,11 +157,14 @@ class TestRegister:
 
         app.dependency_overrides[get_db] = override_db
         try:
-            response = await client.post("/api/v1/auth/register", json={
-                "email": "new@example.com",
-                "password": "SecurePass1",
-                "full_name": "New User",
-            })
+            response = await client.post(
+                "/api/v1/auth/register",
+                json={
+                    "email": "new@example.com",
+                    "password": "SecurePass1",
+                    "full_name": "New User",
+                },
+            )
             assert response.status_code == 201
             data = response.json()
             assert data["email"] == "new@example.com"
@@ -160,11 +175,14 @@ class TestRegister:
 
     @pytest.mark.asyncio
     async def test_register_weak_password(self, client):
-        response = await client.post("/api/v1/auth/register", json={
-            "email": "new@example.com",
-            "password": "weak",
-            "full_name": "New User",
-        })
+        response = await client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": "new@example.com",
+                "password": "weak",
+                "full_name": "New User",
+            },
+        )
         # min_length=8 on the Pydantic model catches this as 422
         assert response.status_code == 422
 
@@ -177,11 +195,14 @@ class TestRegister:
 
         app.dependency_overrides[get_db] = override_db
         try:
-            response = await client.post("/api/v1/auth/register", json={
-                "email": "new@example.com",
-                "password": "alllower1",
-                "full_name": "New User",
-            })
+            response = await client.post(
+                "/api/v1/auth/register",
+                json={
+                    "email": "new@example.com",
+                    "password": "alllower1",
+                    "full_name": "New User",
+                },
+            )
             assert response.status_code == 400
             assert "uppercase" in response.json()["detail"]
         finally:
@@ -197,11 +218,14 @@ class TestRegister:
 
         app.dependency_overrides[get_db] = override_db
         try:
-            response = await client.post("/api/v1/auth/register", json={
-                "email": "existing@test.com",
-                "password": "SecurePass1",
-                "full_name": "Duplicate User",
-            })
+            response = await client.post(
+                "/api/v1/auth/register",
+                json={
+                    "email": "existing@test.com",
+                    "password": "SecurePass1",
+                    "full_name": "Duplicate User",
+                },
+            )
             assert response.status_code == 409
         finally:
             app.dependency_overrides.clear()
@@ -213,6 +237,7 @@ class TestRegister:
         async def mock_refresh(obj):
             import uuid as uuid_mod
             from datetime import datetime, timezone
+
             obj.id = uuid_mod.uuid4()
             obj.created_at = datetime.now(timezone.utc)
             obj.updated_at = datetime.now(timezone.utc)
@@ -225,11 +250,14 @@ class TestRegister:
 
         app.dependency_overrides[get_db] = override_db
         try:
-            response = await client.post("/api/v1/auth/register", json={
-                "email": "new2@example.com",
-                "password": "SecurePass1",
-                "full_name": "New User",
-            })
+            response = await client.post(
+                "/api/v1/auth/register",
+                json={
+                    "email": "new2@example.com",
+                    "password": "SecurePass1",
+                    "full_name": "New User",
+                },
+            )
             assert response.status_code == 201
             data = response.json()
             assert "password_hash" not in data
@@ -241,9 +269,9 @@ class TestRegister:
 class TestRefresh:
     @pytest.mark.asyncio
     async def test_refresh_invalid_token(self, client):
-        response = await client.post("/api/v1/auth/refresh", json={
-            "refresh_token": "invalid.token.here"
-        })
+        response = await client.post(
+            "/api/v1/auth/refresh", json={"refresh_token": "invalid.token.here"}
+        )
         assert response.status_code == 401
 
     @pytest.mark.asyncio
@@ -264,9 +292,9 @@ class TestRefresh:
                 mock_redis.close = AsyncMock()
                 mock_redis_fn.return_value = mock_redis
 
-                response = await client.post("/api/v1/auth/refresh", json={
-                    "refresh_token": token
-                })
+                response = await client.post(
+                    "/api/v1/auth/refresh", json={"refresh_token": token}
+                )
                 assert response.status_code == 200
                 data = response.json()
                 assert "access_token" in data
@@ -287,15 +315,15 @@ class TestLogout:
             mock_redis.close = AsyncMock()
             mock_redis_fn.return_value = mock_redis
 
-            response = await client.post("/api/v1/auth/logout", json={
-                "refresh_token": token
-            })
+            response = await client.post(
+                "/api/v1/auth/logout", json={"refresh_token": token}
+            )
             assert response.status_code == 200
             assert response.json()["message"] == "Logged out successfully"
 
     @pytest.mark.asyncio
     async def test_logout_invalid_token_still_succeeds(self, client):
-        response = await client.post("/api/v1/auth/logout", json={
-            "refresh_token": "invalid"
-        })
+        response = await client.post(
+            "/api/v1/auth/logout", json={"refresh_token": "invalid"}
+        )
         assert response.status_code == 200

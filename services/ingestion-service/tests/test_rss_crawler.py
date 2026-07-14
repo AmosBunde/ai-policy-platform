@@ -1,4 +1,5 @@
 """Tests for RSS crawler with SSRF prevention."""
+
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 
@@ -7,7 +8,10 @@ from src.crawlers.ssrf_guard import validate_url
 
 class TestSSRFGuard:
     def test_valid_https_url(self):
-        assert validate_url("https://example.com/feed.xml") == "https://example.com/feed.xml"
+        assert (
+            validate_url("https://example.com/feed.xml")
+            == "https://example.com/feed.xml"
+        )
 
     def test_valid_http_url(self):
         assert validate_url("http://example.com/rss") == "http://example.com/rss"
@@ -61,6 +65,7 @@ class TestRSSCrawler:
     @pytest.mark.asyncio
     async def test_crawl_rss_rejects_ssrf(self):
         from src.crawlers.rss_crawler import crawl_rss
+
         with pytest.raises(ValueError, match="private IP"):
             await crawl_rss("http://127.0.0.1/feed.xml")
 

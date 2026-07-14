@@ -1,4 +1,5 @@
 """RSS/Atom feed crawler with SSRF prevention."""
+
 import logging
 from dataclasses import dataclass, field
 
@@ -58,17 +59,19 @@ async def crawl_rss(feed_url: str) -> list[FeedEntry]:
         elif hasattr(entry, "description"):
             content = entry.description or ""
 
-        entries.append(FeedEntry(
-            title=entry.get("title", "Untitled"),
-            link=entry.get("link", ""),
-            content=content,
-            published=entry.get("published"),
-            external_id=entry.get("id"),
-            metadata={
-                "author": entry.get("author"),
-                "tags": [t.get("term") for t in entry.get("tags", [])],
-            },
-        ))
+        entries.append(
+            FeedEntry(
+                title=entry.get("title", "Untitled"),
+                link=entry.get("link", ""),
+                content=content,
+                published=entry.get("published"),
+                external_id=entry.get("id"),
+                metadata={
+                    "author": entry.get("author"),
+                    "tags": [t.get("term") for t in entry.get("tags", [])],
+                },
+            )
+        )
 
     logger.info("Crawled %d entries from %s", len(entries), feed_url)
     return entries

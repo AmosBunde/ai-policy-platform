@@ -1,4 +1,5 @@
 """PDF text extraction using PyMuPDF with security limits."""
+
 import logging
 
 import fitz  # PyMuPDF

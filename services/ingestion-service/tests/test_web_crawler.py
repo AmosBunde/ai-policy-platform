@@ -1,4 +1,5 @@
 """Tests for web crawler: HTML extraction, SSRF blocking, timeout."""
+
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -7,12 +8,14 @@ class TestWebCrawlerSSRF:
     @pytest.mark.asyncio
     async def test_rejects_private_ip(self):
         from src.crawlers.web_crawler import crawl_web
+
         with pytest.raises(ValueError, match="private IP"):
             await crawl_web("http://192.168.1.1/page")
 
     @pytest.mark.asyncio
     async def test_rejects_localhost(self):
         from src.crawlers.web_crawler import crawl_web
+
         with pytest.raises(ValueError, match="private IP"):
             await crawl_web("http://127.0.0.1/admin")
 

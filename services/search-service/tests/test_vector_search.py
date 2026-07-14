@@ -1,4 +1,5 @@
 """Tests for vector search: embedding generation (mocked), similarity search."""
+
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 

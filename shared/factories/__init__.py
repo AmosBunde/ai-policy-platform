@@ -1,4 +1,5 @@
 """Test data factories using factory_boy for all RegulatorAI models."""
+
 from .factories import (
     UserFactory,
     RegulatorySourceFactory,

@@ -1,5 +1,4 @@
 """Tests for content normalizer."""
-import pytest
 
 from src.parsers.normalizer import (
     detect_language,
@@ -27,7 +26,9 @@ class TestContentHash:
 
 class TestLanguageDetection:
     def test_english(self):
-        text = "The quick brown fox jumps over the lazy dog. This is a test of the system."
+        text = (
+            "The quick brown fox jumps over the lazy dog. This is a test of the system."
+        )
         assert detect_language(text) == "en"
 
     def test_french(self):
@@ -87,7 +88,7 @@ class TestNormalize:
     def test_xss_in_content_stripped(self):
         result = normalize(
             title="<script>evil()</script>Title",
-            content='Normal <script>alert(1)</script> text',
+            content="Normal <script>alert(1)</script> text",
         )
         assert "<script>" not in result["title"]
         assert "<script>" not in result["content"]

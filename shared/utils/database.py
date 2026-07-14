@@ -1,4 +1,5 @@
 """Async database session factory with connection pooling for FastAPI."""
+
 import asyncio
 import logging
 from collections.abc import AsyncGenerator
@@ -54,11 +55,16 @@ async def wait_for_db(max_retries: int = 5, retry_delay: float = 2.0) -> None:
             return
         except Exception as exc:
             if attempt == max_retries:
-                logger.error("Failed to connect to database after %d attempts.", max_retries)
+                logger.error(
+                    "Failed to connect to database after %d attempts.", max_retries
+                )
                 raise
             logger.warning(
                 "Database connection attempt %d/%d failed: %s. Retrying in %.1fs...",
-                attempt, max_retries, exc, retry_delay,
+                attempt,
+                max_retries,
+                exc,
+                retry_delay,
             )
             await asyncio.sleep(retry_delay)
 
@@ -66,6 +72,7 @@ async def wait_for_db(max_retries: int = 5, retry_delay: float = 2.0) -> None:
 def text_query(sql: str):
     """Helper to create a text clause."""
     from sqlalchemy import text
+
     return text(sql)
 
 

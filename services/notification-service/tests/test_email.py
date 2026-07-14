@@ -1,4 +1,5 @@
 """Tests for email channel: rendering, header injection prevention."""
+
 import pytest
 from src.channels.email import (
     validate_email,
@@ -61,7 +62,7 @@ class TestEmailRendering:
 
     def test_xss_in_title_escaped(self):
         html = render_email_html(
-            title='<script>alert(1)</script>Alert',
+            title="<script>alert(1)</script>Alert",
             document_title="Safe doc",
             summary="Safe summary",
             urgency_level="normal",
@@ -71,15 +72,21 @@ class TestEmailRendering:
 
     def test_urgency_colors(self):
         html = render_email_html(
-            title="Alert", document_title="Doc",
-            summary="S", urgency_level="critical", rule_name="R",
+            title="Alert",
+            document_title="Doc",
+            summary="S",
+            urgency_level="critical",
+            rule_name="R",
         )
         assert "#e53e3e" in html  # Critical color
 
     def test_with_detail_url(self):
         html = render_email_html(
-            title="Alert", document_title="Doc",
-            summary="S", urgency_level="normal", rule_name="R",
+            title="Alert",
+            document_title="Doc",
+            summary="S",
+            urgency_level="normal",
+            rule_name="R",
             detail_url="https://app.regulatorai.com/doc/123",
         )
         assert "View Details" in html

@@ -1,7 +1,8 @@
 """Normalize parsed content to RegulatoryDocument schema."""
+
 import hashlib
 import re
-from datetime import datetime, timezone
+from datetime import datetime
 
 _MAX_CONTENT_LENGTH = 1_000_000  # 1M chars
 

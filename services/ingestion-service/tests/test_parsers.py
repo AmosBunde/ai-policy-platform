@@ -1,4 +1,5 @@
 """Tests for PDF and HTML parsers."""
+
 import pytest
 
 from src.parsers.html_parser import parse_html
@@ -12,7 +13,9 @@ class TestHTMLParser:
         assert "Hello world" in result["content"]
 
     def test_extracts_title(self):
-        html = "<html><head><title>My Title</title></head><body><p>text</p></body></html>"
+        html = (
+            "<html><head><title>My Title</title></head><body><p>text</p></body></html>"
+        )
         result = parse_html(html)
         assert result["title"] == "My Title"
 
@@ -23,7 +26,9 @@ class TestHTMLParser:
         assert "Safe" in result["content"]
 
     def test_strips_iframe(self):
-        html = '<html><body><iframe src="evil.com"></iframe><p>Content</p></body></html>'
+        html = (
+            '<html><body><iframe src="evil.com"></iframe><p>Content</p></body></html>'
+        )
         result = parse_html(html)
         assert "iframe" not in result["content"]
         assert "Content" in result["content"]
@@ -39,7 +44,9 @@ class TestHTMLParser:
         assert "javascript:" not in str(result)
 
     def test_strips_style_tags(self):
-        html = "<html><body><style>body{display:none}</style><p>Visible</p></body></html>"
+        html = (
+            "<html><body><style>body{display:none}</style><p>Visible</p></body></html>"
+        )
         result = parse_html(html)
         assert "display:none" not in result["content"]
 

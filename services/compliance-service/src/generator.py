@@ -1,7 +1,7 @@
 """Report generation: Jinja2 rendering, PDF (WeasyPrint), DOCX (python-docx)."""
+
 import io
 import logging
-import os
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -71,6 +71,7 @@ def html_to_pdf(html_content: str) -> bytes:
         if url.startswith("data:"):
             # Allow data URIs (inline images etc.)
             from weasyprint import default_url_fetcher
+
             return default_url_fetcher(url, timeout=timeout, ssl_context=ssl_context)
         # Block everything else (http, https, file, ftp, etc.)
         logger.warning("Blocked external resource fetch in PDF: %s", url[:200])
@@ -87,7 +88,7 @@ def html_to_pdf(html_content: str) -> bytes:
 def html_to_docx(html_content: str, title: str = "Compliance Report") -> bytes:
     """Convert structured data to DOCX using python-docx."""
     from docx import Document
-    from docx.shared import Inches, Pt
+    from docx.shared import Pt
     from docx.enum.text import WD_ALIGN_PARAGRAPH
 
     doc = Document()
@@ -104,6 +105,7 @@ def html_to_docx(html_content: str, title: str = "Compliance Report") -> bytes:
 
     # Parse basic structure from HTML (simplified extraction)
     from bs4 import BeautifulSoup
+
     soup = BeautifulSoup(html_content, "html.parser")
 
     for heading_tag in soup.find_all(["h1", "h2", "h3"]):

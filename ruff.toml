@@ -1,0 +1,11 @@
+# Formatting and linting for all Python services and shared libraries.
+line-length = 88
+target-version = "py311"
+
+[lint.per-file-ignores]
+# pytest convention: fixtures imported from conftest are "redefined" by the
+# fixture parameters that use them; env vars must be set before app imports.
+"**/tests/**" = ["F811", "E402"]
+"**/test_*.py" = ["F811", "E402"]
+# alembic's env.py configures sys.path before importing project modules
+"**/alembic/env.py" = ["E402"]

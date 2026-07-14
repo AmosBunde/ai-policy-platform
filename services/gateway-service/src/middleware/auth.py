@@ -1,4 +1,5 @@
 """Authentication middleware: JWT validation and role-based access control."""
+
 import uuid
 
 from fastapi import Depends, HTTPException, status

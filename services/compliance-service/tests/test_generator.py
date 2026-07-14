@@ -1,4 +1,5 @@
 """Tests for report generator: template rendering, PDF, DOCX."""
+
 import pytest
 from src.generator import (
     VALID_TEMPLATES,
@@ -49,7 +50,12 @@ class TestRenderReport:
                         "summary": "New AI regulations for the EU.",
                         "key_changes": ["Mandatory bias audits"],
                         "impact_scores": [
-                            {"region": "EU", "product_category": "SaaS", "score": 8, "justification": "Direct impact"}
+                            {
+                                "region": "EU",
+                                "product_category": "SaaS",
+                                "score": 8,
+                                "justification": "Direct impact",
+                            }
                         ],
                         "draft_response": "We recommend compliance by Q2 2025.",
                     },
@@ -64,7 +70,15 @@ class TestRenderReport:
         html = render_report(
             template_id="executive_summary",
             title="Q1 Summary",
-            documents=[{"title": "Doc 1", "enrichment": {"summary": "Summary text", "urgency_level": "critical"}}],
+            documents=[
+                {
+                    "title": "Doc 1",
+                    "enrichment": {
+                        "summary": "Summary text",
+                        "urgency_level": "critical",
+                    },
+                }
+            ],
         )
         assert "Q1 Summary" in html
         assert "Summary text" in html
@@ -73,22 +87,24 @@ class TestRenderReport:
         html = render_report(
             template_id="detailed_analysis",
             title="Deep Dive",
-            documents=[{
-                "title": "NIST Framework",
-                "jurisdiction": "US-Federal",
-                "url": "https://nist.gov/ai",
-                "enrichment": {
-                    "summary": "Risk management framework.",
-                    "classification": [{"domain": "safety", "confidence": 0.9}],
-                    "affected_entities": ["AI developers"],
-                    "key_changes": ["New testing requirements"],
-                    "effective_dates": ["2025-06-01"],
-                    "impact_scores": [],
-                    "confidence_score": 0.85,
-                    "urgency_level": "high",
-                    "token_usage": {"total": 5000},
-                },
-            }],
+            documents=[
+                {
+                    "title": "NIST Framework",
+                    "jurisdiction": "US-Federal",
+                    "url": "https://nist.gov/ai",
+                    "enrichment": {
+                        "summary": "Risk management framework.",
+                        "classification": [{"domain": "safety", "confidence": 0.9}],
+                        "affected_entities": ["AI developers"],
+                        "key_changes": ["New testing requirements"],
+                        "effective_dates": ["2025-06-01"],
+                        "impact_scores": [],
+                        "confidence_score": 0.85,
+                        "urgency_level": "high",
+                        "token_usage": {"total": 5000},
+                    },
+                }
+            ],
         )
         assert "NIST Framework" in html
         assert "safety" in html

@@ -3,7 +3,6 @@
 Verifies that internal service routes reject requests without the shared
 internal token, accept requests carrying it, and keep health probes open.
 """
-import os
 
 import pytest
 from fastapi.testclient import TestClient

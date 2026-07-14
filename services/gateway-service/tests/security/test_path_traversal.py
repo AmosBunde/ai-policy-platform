@@ -5,6 +5,7 @@ Verifies that:
   - Encoded path traversal sequences are blocked
   - URL-encoded and double-encoded traversal attempts are caught
 """
+
 import pytest
 
 from conftest import auth_headers
@@ -51,11 +52,14 @@ class TestPathTraversalInUploadFilename:
     """Filename manipulation in document upload should not write to arbitrary paths."""
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("filename", [
-        "../../../etc/cron.d/malicious",
-        "....//....//payload.sh",
-        "/etc/passwd",
-    ])
+    @pytest.mark.parametrize(
+        "filename",
+        [
+            "../../../etc/cron.d/malicious",
+            "....//....//payload.sh",
+            "/etc/passwd",
+        ],
+    )
     async def test_traversal_filename_in_upload(self, client, filename):
         """Document title containing path traversal should be handled safely."""
         response = await client.post(

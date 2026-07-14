@@ -1,4 +1,5 @@
 """Redis Pub/Sub event system for cross-service communication."""
+
 import asyncio
 import json
 import logging
@@ -80,10 +81,13 @@ class RedisEventPublisher:
                     raise ConnectionError(
                         f"Failed to connect to Redis after {max_retries} attempts"
                     ) from exc
-                delay = min(2 ** attempt, 30)
+                delay = min(2**attempt, 30)
                 logger.warning(
                     "Redis connection attempt %d/%d failed: %s. Retrying in %ds...",
-                    attempt, max_retries, exc, delay,
+                    attempt,
+                    max_retries,
+                    exc,
+                    delay,
                 )
                 await asyncio.sleep(delay)
         raise ConnectionError("Unreachable")
@@ -129,10 +133,13 @@ class RedisEventSubscriber:
                     raise ConnectionError(
                         f"Failed to connect to Redis after {max_retries} attempts"
                     ) from exc
-                delay = min(2 ** attempt, 30)
+                delay = min(2**attempt, 30)
                 logger.warning(
                     "Redis connection attempt %d/%d failed: %s. Retrying in %ds...",
-                    attempt, max_retries, exc, delay,
+                    attempt,
+                    max_retries,
+                    exc,
+                    delay,
                 )
                 await asyncio.sleep(delay)
         raise ConnectionError("Unreachable")

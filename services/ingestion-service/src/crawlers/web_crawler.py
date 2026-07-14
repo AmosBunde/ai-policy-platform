@@ -1,8 +1,9 @@
 """Web crawler with robots.txt compliance, rate limiting, and SSRF prevention."""
+
 import asyncio
 import logging
 import time
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 
 import httpx
 from bs4 import BeautifulSoup
@@ -87,7 +88,9 @@ async def crawl_web(url: str) -> dict:
     soup = BeautifulSoup(response.text, "html.parser")
 
     # Remove dangerous elements
-    for tag in soup(["script", "style", "iframe", "object", "embed", "form", "noscript"]):
+    for tag in soup(
+        ["script", "style", "iframe", "object", "embed", "form", "noscript"]
+    ):
         tag.decompose()
 
     title = ""

@@ -1,4 +1,5 @@
 """Document chunker: split by token count with paragraph-aware boundaries."""
+
 import tiktoken
 from dataclasses import dataclass
 
@@ -40,7 +41,14 @@ def chunk_document(
     total_tokens = len(tokens)
 
     if total_tokens <= max_tokens:
-        return [Chunk(index=0, text=text, token_count=total_tokens, metadata={"total_chunks": 1})]
+        return [
+            Chunk(
+                index=0,
+                text=text,
+                token_count=total_tokens,
+                metadata={"total_chunks": 1},
+            )
+        ]
 
     # Split into paragraphs first
     paragraphs = text.split("\n\n")
@@ -57,12 +65,14 @@ def chunk_document(
         if current_token_count + para_tokens > max_tokens and current_paragraphs:
             # Emit current chunk
             chunk_text = "\n\n".join(current_paragraphs)
-            chunks.append(Chunk(
-                index=len(chunks),
-                text=chunk_text,
-                token_count=current_token_count,
-                metadata={},
-            ))
+            chunks.append(
+                Chunk(
+                    index=len(chunks),
+                    text=chunk_text,
+                    token_count=current_token_count,
+                    metadata={},
+                )
+            )
 
             # Overlap: keep last paragraphs that fit within overlap_tokens
             overlap_paras: list[str] = []
@@ -82,12 +92,14 @@ def chunk_document(
         if para_tokens > max_tokens:
             if current_paragraphs:
                 chunk_text = "\n\n".join(current_paragraphs)
-                chunks.append(Chunk(
-                    index=len(chunks),
-                    text=chunk_text,
-                    token_count=current_token_count,
-                    metadata={},
-                ))
+                chunks.append(
+                    Chunk(
+                        index=len(chunks),
+                        text=chunk_text,
+                        token_count=current_token_count,
+                        metadata={},
+                    )
+                )
                 current_paragraphs = []
                 current_token_count = 0
 
@@ -98,12 +110,14 @@ def chunk_document(
                 end = min(offset + max_tokens, len(para_encoded))
                 sub_text = encoding.decode(para_encoded[offset:end])
                 sub_count = end - offset
-                chunks.append(Chunk(
-                    index=len(chunks),
-                    text=sub_text,
-                    token_count=sub_count,
-                    metadata={"force_split": True},
-                ))
+                chunks.append(
+                    Chunk(
+                        index=len(chunks),
+                        text=sub_text,
+                        token_count=sub_count,
+                        metadata={"force_split": True},
+                    )
+                )
                 offset = end - overlap_tokens if end < len(para_encoded) else end
             continue
 
@@ -112,12 +126,14 @@ def chunk_document(
 
     if current_paragraphs:
         chunk_text = "\n\n".join(current_paragraphs)
-        chunks.append(Chunk(
-            index=len(chunks),
-            text=chunk_text,
-            token_count=current_token_count,
-            metadata={},
-        ))
+        chunks.append(
+            Chunk(
+                index=len(chunks),
+                text=chunk_text,
+                token_count=current_token_count,
+                metadata={},
+            )
+        )
 
     total_chunks = len(chunks)
     for c in chunks:

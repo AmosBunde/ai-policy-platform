@@ -1,5 +1,5 @@
 """Shared Pydantic models used across all services."""
-import html
+
 import re
 from datetime import datetime
 from enum import Enum
@@ -33,6 +33,7 @@ def sanitize_html(value: str) -> str:
 
 
 # ── Enums ──────────────────────────────────────────────────
+
 
 class DocumentStatus(str, Enum):
     INGESTED = "ingested"
@@ -71,12 +72,14 @@ class SourceType(str, Enum):
 
 # ── Base Models ────────────────────────────────────────────
 
+
 class TimestampMixin(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 # ── User Models ────────────────────────────────────────────
+
 
 class UserBase(BaseModel):
     email: str = Field(..., max_length=255)
@@ -124,6 +127,7 @@ class UserResponse(UserBase, TimestampMixin):
 
 
 # ── Document Models ────────────────────────────────────────
+
 
 class RegulatoryDocumentBase(BaseModel):
     title: str = Field(..., max_length=500)
@@ -185,6 +189,7 @@ class RegulatoryDocumentResponse(RegulatoryDocumentBase, TimestampMixin):
 
 # ── Enrichment Models ──────────────────────────────────────
 
+
 class ImpactScore(BaseModel):
     region: str = Field(..., max_length=100)
     product_category: str = Field(..., max_length=100)
@@ -235,6 +240,7 @@ class DocumentEnrichmentResponse(DocumentEnrichmentCreate, TimestampMixin):
 
 # ── Search Models ──────────────────────────────────────────
 
+
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500)
     jurisdiction: Optional[str] = Field(None, max_length=100)
@@ -268,6 +274,7 @@ class SearchResponse(BaseModel):
 
 # ── Report Models ──────────────────────────────────────────
 
+
 class ComplianceReportCreate(BaseModel):
     title: str = Field(..., max_length=500)
     document_ids: list[UUID]
@@ -292,6 +299,7 @@ class ComplianceReportResponse(ComplianceReportCreate, TimestampMixin):
 
 
 # ── Watch Rule Models ──────────────────────────────────────
+
 
 class WatchRuleCondition(BaseModel):
     field: str = Field(..., max_length=100)
@@ -322,14 +330,18 @@ class WatchRuleResponse(WatchRuleCreate, TimestampMixin):
 
 # ── Event Models (for Redis Pub/Sub) ──────────────────────
 
+
 class DocumentEvent(BaseModel):
-    event_type: str = Field(..., pattern=r"^document\.(ingested|enriched|failed|archived)$")
+    event_type: str = Field(
+        ..., pattern=r"^document\.(ingested|enriched|failed|archived)$"
+    )
     document_id: UUID
     metadata: dict = {}
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
 # ── Auth Models ────────────────────────────────────────────
+
 
 class TokenPair(BaseModel):
     access_token: str

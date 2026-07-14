@@ -1,4 +1,5 @@
 """LangGraph multi-agent pipeline for regulatory document analysis."""
+
 import json
 import logging
 import re
@@ -12,6 +13,7 @@ settings = get_settings()
 
 class AgentState(TypedDict):
     """State shared across all nodes in the LangGraph pipeline."""
+
     document_id: str
     raw_content: str
     metadata: dict
@@ -106,6 +108,7 @@ Generate a professional compliance response that includes:
 
 # ── Validation Helpers ────────────────────────────────────
 
+
 def _validate_summary_output(data: dict) -> dict:
     """Validate LLM output matches expected summary schema."""
     if not isinstance(data, dict):
@@ -129,11 +132,13 @@ def _validate_classification_output(data: list) -> list:
         conf = item.get("confidence", 0.5)
         if not isinstance(conf, (int, float)) or conf < 0 or conf > 1:
             conf = 0.5
-        validated.append({
-            "domain": str(item["domain"]),
-            "confidence": float(conf),
-            "sub_categories": item.get("sub_categories", []),
-        })
+        validated.append(
+            {
+                "domain": str(item["domain"]),
+                "confidence": float(conf),
+                "sub_categories": item.get("sub_categories", []),
+            }
+        )
     return validated
 
 
@@ -149,12 +154,14 @@ def _validate_impact_output(data: list) -> list:
         if not isinstance(score, (int, float)):
             score = 5
         score = max(1, min(10, int(score)))
-        validated.append({
-            "region": str(item.get("region", "unknown")),
-            "product_category": str(item.get("product_category", "unknown")),
-            "score": score,
-            "justification": str(item.get("justification", "")),
-        })
+        validated.append(
+            {
+                "region": str(item.get("region", "unknown")),
+                "product_category": str(item.get("product_category", "unknown")),
+                "score": score,
+                "justification": str(item.get("justification", "")),
+            }
+        )
     return validated
 
 
@@ -173,6 +180,7 @@ def _calculate_urgency(impact_scores: list) -> str:
 
 
 # ── Node Functions ─────────────────────────────────────────
+
 
 async def router_node(state: AgentState) -> AgentState:
     """Route document: detect language, set processing flags."""
@@ -346,7 +354,8 @@ async def aggregator_node(state: AgentState) -> AgentState:
 
     # Total token usage
     total_cost = sum(
-        v.get("cost", 0) for v in state.get("token_usage", {}).values()
+        v.get("cost", 0)
+        for v in state.get("token_usage", {}).values()
         if isinstance(v, dict)
     )
     state["token_usage"]["total_cost"] = total_cost
@@ -355,6 +364,7 @@ async def aggregator_node(state: AgentState) -> AgentState:
 
 
 # ── Graph Builder ──────────────────────────────────────────
+
 
 def build_agent_graph():
     """Build the LangGraph StateGraph with conditional routing and error handling."""
@@ -389,6 +399,7 @@ def build_agent_graph():
 
 
 # ── Pipeline Runner ────────────────────────────────────────
+
 
 async def run_pipeline(document_id: str, content: str, metadata: dict) -> dict:
     """Execute the full pipeline and return enrichment data."""

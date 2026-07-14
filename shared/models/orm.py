@@ -1,4 +1,5 @@
 """SQLAlchemy 2.0 ORM models for RegulatorAI."""
+
 import enum
 import hashlib
 import uuid
@@ -7,7 +8,6 @@ from datetime import datetime, timezone
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
-    Column,
     DateTime,
     Float,
     ForeignKey,
@@ -15,7 +15,6 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    UniqueConstraint,
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -35,6 +34,7 @@ def generate_uuid() -> uuid.UUID:
 
 
 # ── Enums ──────────────────────────────────────────────────
+
 
 class UserRoleEnum(str, enum.Enum):
     ADMIN = "admin"
@@ -73,15 +73,21 @@ class ReportStatusEnum(str, enum.Enum):
 
 # ── Users ──────────────────────────────────────────────────
 
+
 class User(Base):
     __tablename__ = "users"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=generate_uuid,
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=generate_uuid,
         server_default=text("uuid_generate_v4()"),
     )
     email: Mapped[str] = mapped_column(
-        String(255), unique=True, nullable=False, index=True,
+        String(255),
+        unique=True,
+        nullable=False,
+        index=True,
     )
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -89,16 +95,21 @@ class User(Base):
     organization: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, server_default=text("NOW()"),
+        DateTime(timezone=True),
+        default=utcnow,
+        server_default=text("NOW()"),
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, server_default=text("NOW()"),
+        DateTime(timezone=True),
+        default=utcnow,
+        server_default=text("NOW()"),
         onupdate=utcnow,
     )
 
     # Relationships
     watch_rules: Mapped[list["WatchRule"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan",
+        back_populates="user",
+        cascade="all, delete-orphan",
     )
     compliance_reports: Mapped[list["ComplianceReport"]] = relationship(
         back_populates="created_by_user",
@@ -114,11 +125,14 @@ class User(Base):
 
 # ── Regulatory Sources ─────────────────────────────────────
 
+
 class RegulatorySource(Base):
     __tablename__ = "regulatory_sources"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=generate_uuid,
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=generate_uuid,
         server_default=text("uuid_generate_v4()"),
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -129,10 +143,13 @@ class RegulatorySource(Base):
     crawl_frequency_minutes: Mapped[int] = mapped_column(Integer, default=60)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_crawled_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True,
+        DateTime(timezone=True),
+        nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, server_default=text("NOW()"),
+        DateTime(timezone=True),
+        default=utcnow,
+        server_default=text("NOW()"),
     )
 
     # Relationships
@@ -161,38 +178,53 @@ class RegulatorySource(Base):
 
 # ── Regulatory Documents ───────────────────────────────────
 
+
 class RegulatoryDocument(Base):
     __tablename__ = "regulatory_documents"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=generate_uuid,
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=generate_uuid,
         server_default=text("uuid_generate_v4()"),
     )
     source_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("regulatory_sources.id"), nullable=True,
+        UUID(as_uuid=True),
+        ForeignKey("regulatory_sources.id"),
+        nullable=True,
     )
     external_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     title: Mapped[str] = mapped_column(Text, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     content_hash: Mapped[str] = mapped_column(
-        String(64), unique=True, nullable=False,
+        String(64),
+        unique=True,
+        nullable=False,
     )
     url: Mapped[str | None] = mapped_column(Text, nullable=True)
     published_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True,
+        DateTime(timezone=True),
+        nullable=True,
     )
     jurisdiction: Mapped[str | None] = mapped_column(String(100), nullable=True)
     document_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     language: Mapped[str] = mapped_column(String(10), default="en")
-    raw_metadata: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"))
+    raw_metadata: Mapped[dict] = mapped_column(
+        JSONB, default=dict, server_default=text("'{}'::jsonb")
+    )
     status: Mapped[str] = mapped_column(
-        String(50), default=DocumentStatusEnum.INGESTED.value,
+        String(50),
+        default=DocumentStatusEnum.INGESTED.value,
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, server_default=text("NOW()"),
+        DateTime(timezone=True),
+        default=utcnow,
+        server_default=text("NOW()"),
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, server_default=text("NOW()"),
+        DateTime(timezone=True),
+        default=utcnow,
+        server_default=text("NOW()"),
         onupdate=utcnow,
     )
 
@@ -201,10 +233,13 @@ class RegulatoryDocument(Base):
         back_populates="documents",
     )
     enrichment: Mapped["DocumentEnrichment | None"] = relationship(
-        back_populates="document", uselist=False, cascade="all, delete-orphan",
+        back_populates="document",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
     embeddings: Mapped[list["DocumentEmbedding"]] = relationship(
-        back_populates="document", cascade="all, delete-orphan",
+        back_populates="document",
+        cascade="all, delete-orphan",
     )
     notifications: Mapped[list["NotificationLog"]] = relationship(
         back_populates="document",
@@ -232,37 +267,58 @@ class RegulatoryDocument(Base):
 
 # ── Document Enrichments ───────────────────────────────────
 
+
 class DocumentEnrichment(Base):
     __tablename__ = "document_enrichments"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=generate_uuid,
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=generate_uuid,
         server_default=text("uuid_generate_v4()"),
     )
     document_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("regulatory_documents.id", ondelete="CASCADE"),
-        unique=True, nullable=False,
+        unique=True,
+        nullable=False,
     )
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
-    key_changes: Mapped[dict] = mapped_column(JSONB, default=list, server_default=text("'[]'::jsonb"))
-    classification: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"))
-    impact_scores: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"))
+    key_changes: Mapped[dict] = mapped_column(
+        JSONB, default=list, server_default=text("'[]'::jsonb")
+    )
+    classification: Mapped[dict] = mapped_column(
+        JSONB, default=dict, server_default=text("'{}'::jsonb")
+    )
+    impact_scores: Mapped[dict] = mapped_column(
+        JSONB, default=dict, server_default=text("'{}'::jsonb")
+    )
     draft_response: Mapped[str | None] = mapped_column(Text, nullable=True)
-    affected_entities: Mapped[dict] = mapped_column(JSONB, default=list, server_default=text("'[]'::jsonb"))
-    effective_dates: Mapped[dict] = mapped_column(JSONB, default=list, server_default=text("'[]'::jsonb"))
+    affected_entities: Mapped[dict] = mapped_column(
+        JSONB, default=list, server_default=text("'[]'::jsonb")
+    )
+    effective_dates: Mapped[dict] = mapped_column(
+        JSONB, default=list, server_default=text("'[]'::jsonb")
+    )
     urgency_level: Mapped[str] = mapped_column(
-        String(20), default=UrgencyLevelEnum.NORMAL.value,
+        String(20),
+        default=UrgencyLevelEnum.NORMAL.value,
     )
     confidence_score: Mapped[float] = mapped_column(Float, default=0.0)
-    token_usage: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"))
+    token_usage: Mapped[dict] = mapped_column(
+        JSONB, default=dict, server_default=text("'{}'::jsonb")
+    )
     processing_time_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     agent_version: Mapped[str | None] = mapped_column(String(50), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, server_default=text("NOW()"),
+        DateTime(timezone=True),
+        default=utcnow,
+        server_default=text("NOW()"),
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, server_default=text("NOW()"),
+        DateTime(timezone=True),
+        default=utcnow,
+        server_default=text("NOW()"),
         onupdate=utcnow,
     )
 
@@ -289,11 +345,14 @@ class DocumentEnrichment(Base):
 
 # ── Document Embeddings ────────────────────────────────────
 
+
 class DocumentEmbedding(Base):
     __tablename__ = "document_embeddings"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=generate_uuid,
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=generate_uuid,
         server_default=text("uuid_generate_v4()"),
     )
     document_id: Mapped[uuid.UUID] = mapped_column(
@@ -306,7 +365,9 @@ class DocumentEmbedding(Base):
     # Vector column is defined in raw SQL via init.sql / migration
     # SQLAlchemy doesn't natively support pgvector; the column exists in the DB
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, server_default=text("NOW()"),
+        DateTime(timezone=True),
+        default=utcnow,
+        server_default=text("NOW()"),
     )
 
     # Relationships
@@ -314,9 +375,7 @@ class DocumentEmbedding(Base):
         back_populates="embeddings",
     )
 
-    __table_args__ = (
-        Index("idx_embeddings_doc", "document_id"),
-    )
+    __table_args__ = (Index("idx_embeddings_doc", "document_id"),)
 
     def __repr__(self) -> str:
         return f"<DocumentEmbedding(id={self.id}, document_id={self.document_id}, chunk={self.chunk_index})>"
@@ -324,31 +383,45 @@ class DocumentEmbedding(Base):
 
 # ── Compliance Reports ─────────────────────────────────────
 
+
 class ComplianceReport(Base):
     __tablename__ = "compliance_reports"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=generate_uuid,
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=generate_uuid,
         server_default=text("uuid_generate_v4()"),
     )
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     created_by: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True,
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=True,
     )
-    document_ids: Mapped[dict] = mapped_column(JSONB, default=list, server_default=text("'[]'::jsonb"))
+    document_ids: Mapped[dict] = mapped_column(
+        JSONB, default=list, server_default=text("'[]'::jsonb")
+    )
     report_type: Mapped[str] = mapped_column(String(50), default="standard")
     template_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    content: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"))
+    content: Mapped[dict] = mapped_column(
+        JSONB, default=dict, server_default=text("'{}'::jsonb")
+    )
     file_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     file_format: Mapped[str] = mapped_column(String(10), default="pdf")
     status: Mapped[str] = mapped_column(
-        String(50), default=ReportStatusEnum.DRAFT.value,
+        String(50),
+        default=ReportStatusEnum.DRAFT.value,
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, server_default=text("NOW()"),
+        DateTime(timezone=True),
+        default=utcnow,
+        server_default=text("NOW()"),
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, server_default=text("NOW()"),
+        DateTime(timezone=True),
+        default=utcnow,
+        server_default=text("NOW()"),
         onupdate=utcnow,
     )
 
@@ -370,11 +443,14 @@ class ComplianceReport(Base):
 
 # ── Watch Rules ────────────────────────────────────────────
 
+
 class WatchRule(Base):
     __tablename__ = "watch_rules"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=generate_uuid,
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=generate_uuid,
         server_default=text("uuid_generate_v4()"),
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
@@ -385,13 +461,18 @@ class WatchRule(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     conditions: Mapped[dict] = mapped_column(JSONB, nullable=False)
-    channels: Mapped[dict] = mapped_column(JSONB, default=list, server_default=text("'[\"email\"]'::jsonb"))
+    channels: Mapped[dict] = mapped_column(
+        JSONB, default=list, server_default=text("'[\"email\"]'::jsonb")
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_triggered_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True,
+        DateTime(timezone=True),
+        nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, server_default=text("NOW()"),
+        DateTime(timezone=True),
+        default=utcnow,
+        server_default=text("NOW()"),
     )
 
     # Relationships
@@ -413,28 +494,39 @@ class WatchRule(Base):
 
 # ── Notification Log ───────────────────────────────────────
 
+
 class NotificationLog(Base):
     __tablename__ = "notification_log"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=generate_uuid,
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=generate_uuid,
         server_default=text("uuid_generate_v4()"),
     )
     user_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True,
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=True,
     )
     watch_rule_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("watch_rules.id"), nullable=True,
+        UUID(as_uuid=True),
+        ForeignKey("watch_rules.id"),
+        nullable=True,
     )
     document_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("regulatory_documents.id"), nullable=True,
+        UUID(as_uuid=True),
+        ForeignKey("regulatory_documents.id"),
+        nullable=True,
     )
     channel: Mapped[str] = mapped_column(String(50), nullable=False)
     subject: Mapped[str | None] = mapped_column(Text, nullable=True)
     body: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(50), default="sent")
     sent_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, server_default=text("NOW()"),
+        DateTime(timezone=True),
+        default=utcnow,
+        server_default=text("NOW()"),
     )
 
     # Relationships
@@ -452,25 +544,35 @@ class NotificationLog(Base):
 
 # ── Audit Log ──────────────────────────────────────────────
 
+
 class AuditLog(Base):
     __tablename__ = "audit_log"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=generate_uuid,
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=generate_uuid,
         server_default=text("uuid_generate_v4()"),
     )
     user_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True,
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=True,
     )
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     resource_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     resource_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), nullable=True,
+        UUID(as_uuid=True),
+        nullable=True,
     )
-    details: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"))
+    details: Mapped[dict] = mapped_column(
+        JSONB, default=dict, server_default=text("'{}'::jsonb")
+    )
     ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, server_default=text("NOW()"),
+        DateTime(timezone=True),
+        default=utcnow,
+        server_default=text("NOW()"),
     )
 
     # Relationships

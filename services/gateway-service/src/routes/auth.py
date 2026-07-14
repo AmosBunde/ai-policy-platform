@@ -1,4 +1,5 @@
 """Authentication routes: login, register, refresh, logout."""
+
 import logging
 
 import redis.asyncio as aioredis
@@ -67,7 +68,9 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
     )
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+)
 async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     """Register a new user."""
     # Check password strength
@@ -79,9 +82,7 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
         )
 
     # Check if email already exists
-    result = await db.execute(
-        select(User).where(User.email == user_data.email.lower())
-    )
+    result = await db.execute(select(User).where(User.email == user_data.email.lower()))
     if result.scalar_one_or_none() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -92,7 +93,9 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
         email=user_data.email.lower(),
         password_hash=password_hash(user_data.password),
         full_name=user_data.full_name,
-        role=user_data.role.value if hasattr(user_data.role, "value") else user_data.role,
+        role=user_data.role.value
+        if hasattr(user_data.role, "value")
+        else user_data.role,
         organization=user_data.organization,
     )
     db.add(user)
@@ -152,7 +155,7 @@ async def refresh_token(request: Request, db: AsyncSession = Depends(get_db)):
 
     user_id = payload.get("sub")
     result = await db.execute(
-        select(User).where(User.id == user_id, User.is_active == True)
+        select(User).where(User.id == user_id, User.is_active.is_(True))
     )
     user = result.scalar_one_or_none()
     if user is None:

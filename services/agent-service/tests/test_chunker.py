@@ -1,5 +1,5 @@
 """Tests for document chunker."""
-import pytest
+
 from src.chunker import chunk_document, Chunk
 
 
@@ -24,13 +24,18 @@ class TestChunker:
         # Create a document that's ~20k tokens (each word ~1 token)
         paragraphs = []
         for i in range(100):
-            paragraphs.append(f"Paragraph {i}: " + "The regulatory framework establishes requirements. " * 30)
+            paragraphs.append(
+                f"Paragraph {i}: "
+                + "The regulatory framework establishes requirements. " * 30
+            )
         text = "\n\n".join(paragraphs)
 
         chunks = chunk_document(text, max_tokens=2000, overlap_tokens=200)
         assert len(chunks) > 1
         for chunk in chunks:
-            assert chunk.token_count <= 2500  # Allow some slack for paragraph boundaries
+            assert (
+                chunk.token_count <= 2500
+            )  # Allow some slack for paragraph boundaries
             assert chunk.metadata["total_chunks"] == len(chunks)
 
     def test_chunk_indices_sequential(self):
@@ -49,7 +54,9 @@ class TestChunker:
             last_words_chunk0 = chunks[0].text.split()[-10:]
             first_words_chunk1 = chunks[1].text.split()[:50]
             overlap_found = any(w in first_words_chunk1 for w in last_words_chunk0)
-            assert overlap_found or True  # Overlap is best-effort with paragraph boundaries
+            assert (
+                overlap_found or True
+            )  # Overlap is best-effort with paragraph boundaries
 
     def test_single_huge_paragraph_force_split(self):
         # One giant paragraph with no newlines

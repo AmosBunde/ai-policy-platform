@@ -1,4 +1,5 @@
 """RegulatorAI API Gateway Service."""
+
 import logging
 from contextlib import asynccontextmanager
 

@@ -1,4 +1,5 @@
 """Tests for LLM client — all with mocked OpenAI."""
+
 import os
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
@@ -127,6 +128,7 @@ class TestLLMCallRetry:
     @pytest.mark.asyncio
     async def test_call_llm_rejects_over_token_limit(self):
         from src.llm_client import call_llm
+
         with pytest.raises(ValueError, match="exceeds token limit"):
             await call_llm("x " * 1000, token_limit=10)
 

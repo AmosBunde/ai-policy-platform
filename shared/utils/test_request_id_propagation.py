@@ -1,4 +1,5 @@
 """Tests for request-ID propagation and the shared error envelope."""
+
 import re
 import uuid
 
@@ -49,9 +50,7 @@ class TestRequestIdPropagation:
 
     def test_rejects_malformed_incoming_id(self):
         client = TestClient(_make_app())
-        resp = client.get(
-            "/ok", headers={REQUEST_ID_HEADER: "not-a-uuid\r\nX-Evil: 1"}
-        )
+        resp = client.get("/ok", headers={REQUEST_ID_HEADER: "not-a-uuid\r\nX-Evil: 1"})
         returned = resp.headers[REQUEST_ID_HEADER]
         assert _UUID_RE.match(returned)
         assert "Evil" not in returned

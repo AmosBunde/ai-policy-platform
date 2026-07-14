@@ -1,4 +1,5 @@
 """Tests for pagination helpers."""
+
 import pytest
 from pydantic import ValidationError
 

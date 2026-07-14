@@ -5,6 +5,7 @@ JSON shape — {"detail": ..., "request_id": ...} — and stack traces never
 leak into response bodies. The full traceback still goes to the structured
 log, correlated by request_id.
 """
+
 import structlog
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse

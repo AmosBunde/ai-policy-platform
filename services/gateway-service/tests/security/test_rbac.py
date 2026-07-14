@@ -12,6 +12,7 @@ Endpoints that should be admin-only:
 Endpoints that require authentication:
   - All /api/v1/* except /auth/*
 """
+
 import uuid
 
 import pytest
@@ -118,7 +119,10 @@ class TestPrivilegeEscalation:
                 headers=auth_headers(user_id=user.id, role="analyst"),
             )
             assert response.status_code == 403
-            assert "admin" in response.json().get("detail", "").lower() or "permission" in response.json().get("detail", "").lower()
+            assert (
+                "admin" in response.json().get("detail", "").lower()
+                or "permission" in response.json().get("detail", "").lower()
+            )
         finally:
             app.dependency_overrides.clear()
 

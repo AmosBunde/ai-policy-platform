@@ -1,4 +1,5 @@
 """Elasticsearch client: index mapping, BM25 search, highlighting, facets, autocomplete."""
+
 import html
 import logging
 import re
@@ -119,11 +120,15 @@ class ESClient:
         if not safe_query or is_wildcard_only(safe_query):
             return {"hits": [], "total": 0}
 
-        must = [{"multi_match": {
-            "query": safe_query,
-            "fields": ["title^3", "summary^2", "content"],
-            "type": "best_fields",
-        }}]
+        must = [
+            {
+                "multi_match": {
+                    "query": safe_query,
+                    "fields": ["title^3", "summary^2", "content"],
+                    "type": "best_fields",
+                }
+            }
+        ]
 
         filters = []
         if jurisdiction:
@@ -167,15 +172,17 @@ class ESClient:
             for field_highlights in (hit.get("highlight") or {}).values():
                 highlights.extend(escape_snippet(h) for h in field_highlights)
 
-            hits.append({
-                "document_id": hit["_source"].get("document_id", hit["_id"]),
-                "title": hit["_source"].get("title", ""),
-                "score": hit["_score"],
-                "highlights": highlights,
-                "jurisdiction": hit["_source"].get("jurisdiction"),
-                "published_at": hit["_source"].get("published_at"),
-                "urgency_level": hit["_source"].get("urgency_level"),
-            })
+            hits.append(
+                {
+                    "document_id": hit["_source"].get("document_id", hit["_id"]),
+                    "title": hit["_source"].get("title", ""),
+                    "score": hit["_score"],
+                    "highlights": highlights,
+                    "jurisdiction": hit["_source"].get("jurisdiction"),
+                    "published_at": hit["_source"].get("published_at"),
+                    "urgency_level": hit["_source"].get("urgency_level"),
+                }
+            )
 
         return {
             "hits": hits,
@@ -202,7 +209,9 @@ class ESClient:
         }
 
         result = await self._es.search(index=INDEX_NAME, body=body)
-        options = result.get("suggest", {}).get("title_suggest", [{}])[0].get("options", [])
+        options = (
+            result.get("suggest", {}).get("title_suggest", [{}])[0].get("options", [])
+        )
         return [opt["text"] for opt in options]
 
     async def get_facets(self) -> dict:
@@ -220,9 +229,15 @@ class ESClient:
         aggs = result.get("aggregations", {})
 
         return {
-            "jurisdictions": [b["key"] for b in aggs.get("jurisdictions", {}).get("buckets", [])],
-            "categories": [b["key"] for b in aggs.get("categories", {}).get("buckets", [])],
-            "urgency_levels": [b["key"] for b in aggs.get("urgency_levels", {}).get("buckets", [])],
+            "jurisdictions": [
+                b["key"] for b in aggs.get("jurisdictions", {}).get("buckets", [])
+            ],
+            "categories": [
+                b["key"] for b in aggs.get("categories", {}).get("buckets", [])
+            ],
+            "urgency_levels": [
+                b["key"] for b in aggs.get("urgency_levels", {}).get("buckets", [])
+            ],
         }
 
     async def close(self) -> None:

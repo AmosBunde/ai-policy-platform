@@ -1,4 +1,5 @@
 """Tests for middleware: security headers, auth dependencies, role checking."""
+
 import uuid
 from unittest.mock import AsyncMock, MagicMock
 
@@ -43,7 +44,10 @@ class TestSecurityHeaders:
     @pytest.mark.asyncio
     async def test_permissions_policy(self, client):
         resp = await client.get("/health")
-        assert resp.headers.get("Permissions-Policy") == "camera=(), microphone=(), geolocation=()"
+        assert (
+            resp.headers.get("Permissions-Policy")
+            == "camera=(), microphone=(), geolocation=()"
+        )
 
     @pytest.mark.asyncio
     async def test_csp(self, client):

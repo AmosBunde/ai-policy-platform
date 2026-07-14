@@ -1,14 +1,13 @@
 """Tests for shared Pydantic models."""
+
 import pytest
 from uuid import uuid4
 from datetime import datetime
 from pydantic import ValidationError
 from shared.models.schemas import (
     SearchRequest,
-    SearchResponse,
     SearchResult,
     RegulatoryDocumentCreate,
-    RegulatoryDocumentBase,
     DocumentEnrichmentCreate,
     ImpactScore,
     KeyChange,
@@ -95,13 +94,20 @@ class TestDocumentModels:
             document_id=uuid4(),
             summary="This regulation introduces...",
             key_changes=[
-                KeyChange(change="Mandatory bias audits", affected_parties=["AI companies"]),
+                KeyChange(
+                    change="Mandatory bias audits", affected_parties=["AI companies"]
+                ),
             ],
             classification=[
                 Classification(domain="safety", confidence=0.92),
             ],
             impact_scores=[
-                ImpactScore(region="EU", product_category="SaaS", score=8, justification="Direct impact"),
+                ImpactScore(
+                    region="EU",
+                    product_category="SaaS",
+                    score=8,
+                    justification="Direct impact",
+                ),
             ],
             urgency_level=UrgencyLevel.HIGH,
         )
@@ -110,7 +116,9 @@ class TestDocumentModels:
 
     def test_impact_score_validation(self):
         with pytest.raises(Exception):
-            ImpactScore(region="EU", product_category="SaaS", score=11, justification="Bad")
+            ImpactScore(
+                region="EU", product_category="SaaS", score=11, justification="Bad"
+            )
 
     def test_title_too_long(self):
         with pytest.raises(ValidationError):
@@ -153,7 +161,7 @@ class TestDocumentModels:
     def test_content_sanitized(self):
         doc = RegulatoryDocumentCreate(
             title="Title",
-            content='Normal text <script>evil()</script> more text',
+            content="Normal text <script>evil()</script> more text",
         )
         assert "<script>" not in doc.content
 
@@ -170,7 +178,9 @@ class TestDocumentModels:
 
     def test_impact_score_minimum(self):
         with pytest.raises(ValidationError):
-            ImpactScore(region="EU", product_category="SaaS", score=0, justification="Bad")
+            ImpactScore(
+                region="EU", product_category="SaaS", score=0, justification="Bad"
+            )
 
 
 class TestUserModels:
@@ -222,7 +232,7 @@ class TestUserModels:
         user = UserCreate(
             email="test@example.com",
             password="SecurePass1",
-            full_name='<script>alert(1)</script>John Doe',
+            full_name="<script>alert(1)</script>John Doe",
         )
         assert "<script>" not in user.full_name
         assert "John Doe" in user.full_name
@@ -255,7 +265,9 @@ class TestWatchRuleModels:
             name="EU Privacy Changes",
             conditions=[
                 WatchRuleCondition(field="jurisdiction", operator="equals", value="EU"),
-                WatchRuleCondition(field="category", operator="contains", value="privacy"),
+                WatchRuleCondition(
+                    field="category", operator="contains", value="privacy"
+                ),
             ],
             channels=["email", "slack"],
         )
@@ -272,7 +284,7 @@ class TestWatchRuleModels:
 
     def test_rule_name_sanitized(self):
         rule = WatchRuleCreate(
-            name='<script>evil()</script>My Rule',
+            name="<script>evil()</script>My Rule",
             conditions=[WatchRuleCondition(field="x", operator="equals", value="y")],
         )
         assert "<script>" not in rule.name
@@ -282,7 +294,9 @@ class TestWatchRuleModels:
         with pytest.raises(ValidationError):
             WatchRuleCreate(
                 name="x" * 256,
-                conditions=[WatchRuleCondition(field="x", operator="equals", value="y")],
+                conditions=[
+                    WatchRuleCondition(field="x", operator="equals", value="y")
+                ],
             )
 
 
@@ -304,7 +318,12 @@ class TestEventModels:
             )
 
     def test_valid_event_types(self):
-        for et in ["document.ingested", "document.enriched", "document.failed", "document.archived"]:
+        for et in [
+            "document.ingested",
+            "document.enriched",
+            "document.failed",
+            "document.archived",
+        ]:
             event = DocumentEvent(event_type=et, document_id=uuid4())
             assert event.event_type == et
 
@@ -312,7 +331,7 @@ class TestEventModels:
 class TestComplianceReportModels:
     def test_report_title_sanitized(self):
         report = ComplianceReportCreate(
-            title='<script>hack()</script>Q1 Report',
+            title="<script>hack()</script>Q1 Report",
             document_ids=[uuid4()],
         )
         assert "<script>" not in report.title
@@ -340,14 +359,14 @@ class TestEnums:
 
 class TestSanitizeHtml:
     def test_script_removal(self):
-        assert "<script>" not in sanitize_html('<script>alert(1)</script>')
+        assert "<script>" not in sanitize_html("<script>alert(1)</script>")
 
     def test_event_handler_removal(self):
         result = sanitize_html('<div onmouseover="alert(1)">text</div>')
         assert "onmouseover" not in result
 
     def test_javascript_uri_removal(self):
-        result = sanitize_html('javascript:void(0)')
+        result = sanitize_html("javascript:void(0)")
         assert "javascript:" not in result
 
     def test_safe_content_preserved(self):

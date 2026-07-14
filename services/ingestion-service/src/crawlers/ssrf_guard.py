@@ -1,6 +1,6 @@
 """SSRF prevention: reject private/internal IP ranges and non-HTTP schemes."""
+
 import ipaddress
-import re
 import socket
 from urllib.parse import urlparse
 

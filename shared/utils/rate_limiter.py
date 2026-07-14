@@ -1,4 +1,5 @@
 """Token bucket rate limiter backed by Redis."""
+
 import time
 
 import redis.asyncio as aioredis
@@ -120,7 +121,11 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
                 config.refill_rate,
                 now,
             )
-            allowed, remaining, retry_after = int(result[0]), int(result[1]), int(result[2])
+            allowed, remaining, retry_after = (
+                int(result[0]),
+                int(result[1]),
+                int(result[2]),
+            )
 
             if not allowed:
                 return JSONResponse(

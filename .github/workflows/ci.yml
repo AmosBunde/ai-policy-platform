@@ -26,7 +26,7 @@ jobs:
       - run: ruff check --select E9,F63,F7,F82 services shared
 
   lint-full:
-    name: Lint (report-only — full style)
+    name: Lint (blocking — full style)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,10 +34,38 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install ruff
-      # ~130 pre-existing style violations; annotations are emitted but the
-      # job stays green — ratchet to blocking after a cleanup pass
-      - run: ruff check --output-format=github services shared || true
-      - run: ruff format --check services shared || true
+      # Codebase is fully clean (see ruff.toml); keep it that way
+      - run: ruff check --output-format=github services shared
+      - run: ruff format --check services shared
+
+  mypy:
+    name: Type check (shared blocking; services report-only)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: services/gateway-service/requirements.txt
+      - run: |
+          pip install -r services/gateway-service/requirements.txt
+          pip install mypy types-requests types-redis
+      # shared/ and gateway are mypy-clean today — blocking
+      - name: mypy shared (blocking)
+        run: mypy --ignore-missing-imports shared
+      - name: mypy gateway (blocking)
+        working-directory: services/gateway-service
+        env:
+          MYPYPATH: ${{ github.workspace }}
+        run: mypy --ignore-missing-imports src
+      # ~15 known errors across the other services — burn-down tracked in #87
+      - name: mypy remaining services (report-only)
+        run: |
+          for s in ingestion agent compliance search notification; do
+            echo "== $s-service =="
+            (cd "services/$s-service" && MYPYPATH="$GITHUB_WORKSPACE" mypy --ignore-missing-imports src) || true
+          done
 
   backend-tests:
     name: Backend tests (${{ matrix.service }})

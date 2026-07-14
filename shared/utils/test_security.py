@@ -1,17 +1,17 @@
 """Tests for security utilities — password hashing, JWT, content hashing, sanitization."""
+
 import os
 import uuid
 from datetime import timedelta
-from unittest.mock import patch
 
 import pytest
-from jose import jwt as jose_jwt
 
 # Set a test JWT secret before importing the module
 os.environ["JWT_SECRET"] = "test-secret-key-that-is-at-least-32-characters-long!"
 
 # Clear settings cache so JWT_SECRET is picked up
 from shared.config.settings import get_settings
+
 get_settings.cache_clear()
 
 from shared.utils.security import (
@@ -139,6 +139,7 @@ class TestJWTTokens:
 
     def test_jwt_secret_minimum_length_enforced(self):
         from shared.config.settings import get_settings
+
         settings = get_settings()
         original = settings.jwt_secret
         try:
@@ -150,6 +151,7 @@ class TestJWTTokens:
 
     def test_jwt_secret_empty_raises(self):
         from shared.config.settings import get_settings
+
         settings = get_settings()
         original = settings.jwt_secret
         try:
@@ -215,12 +217,12 @@ class TestInputSanitization:
 
     def test_mixed_xss_payloads(self):
         payloads = [
-            '<script>document.cookie</script>',
-            '<img src=x onerror=alert(1)>',
-            '<svg onload=alert(1)>',
-            '<body onload=alert(1)>',
-            'javascript:alert(1)',
-            '<SCRIPT>alert(1)</SCRIPT>',
+            "<script>document.cookie</script>",
+            "<img src=x onerror=alert(1)>",
+            "<svg onload=alert(1)>",
+            "<body onload=alert(1)>",
+            "javascript:alert(1)",
+            "<SCRIPT>alert(1)</SCRIPT>",
             '<iframe src="data:text/html,<script>alert(1)</script>"></iframe>',
             '<object data="javascript:alert(1)">',
             '<embed src="javascript:alert(1)">',

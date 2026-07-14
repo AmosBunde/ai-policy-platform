@@ -1,8 +1,8 @@
 """Semantic search using OpenAI embeddings and pgvector cosine similarity."""
+
 import logging
 import re
 
-import numpy as np
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -69,7 +69,9 @@ async def similarity_search(
     embedding_str = "[" + ",".join(str(x) for x in query_embedding) + "]"
 
     engine = create_async_engine(db_url or settings.database_url, echo=False)
-    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    session_factory = async_sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False
+    )
 
     async with session_factory() as session:
         result = await session.execute(

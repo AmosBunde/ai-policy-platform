@@ -1,9 +1,7 @@
 """Tests for database session management."""
-import pytest
 
 from shared.utils.database import (
     async_session_factory,
-    dispose_engine,
     engine,
     get_db,
     text_query,

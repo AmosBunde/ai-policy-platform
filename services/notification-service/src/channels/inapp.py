@@ -1,4 +1,5 @@
 """In-app notification storage with read/unread tracking."""
+
 import logging
 import uuid
 from datetime import datetime, timezone

@@ -7,6 +7,7 @@ Verifies:
   - Algorithm confusion attacks are blocked (only HS256 accepted)
   - Tokens with missing claims are rejected
 """
+
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -19,7 +20,9 @@ from .conftest import client  # noqa: F401
 JWT_SECRET = "test-secret-key-that-is-at-least-32-characters-long-for-testing!"
 
 
-def _make_token(payload: dict, secret: str = JWT_SECRET, algorithm: str = "HS256") -> str:
+def _make_token(
+    payload: dict, secret: str = JWT_SECRET, algorithm: str = "HS256"
+) -> str:
     return jwt.encode(payload, secret, algorithm=algorithm)
 
 
@@ -105,7 +108,9 @@ class TestTamperedJWT:
 
     @pytest.mark.asyncio
     async def test_wrong_secret(self, client):
-        token = _make_token(_valid_payload(), secret="wrong-secret-key-32-characters-long-xxxx")
+        token = _make_token(
+            _valid_payload(), secret="wrong-secret-key-32-characters-long-xxxx"
+        )
 
         response = await client.get(
             "/api/v1/users/me",
@@ -143,12 +148,16 @@ class TestAlgorithmConfusion:
         import base64
         import json
 
-        header = base64.urlsafe_b64encode(
-            json.dumps({"alg": "none", "typ": "JWT"}).encode()
-        ).rstrip(b"=").decode()
-        body = base64.urlsafe_b64encode(
-            json.dumps(payload, default=str).encode()
-        ).rstrip(b"=").decode()
+        header = (
+            base64.urlsafe_b64encode(json.dumps({"alg": "none", "typ": "JWT"}).encode())
+            .rstrip(b"=")
+            .decode()
+        )
+        body = (
+            base64.urlsafe_b64encode(json.dumps(payload, default=str).encode())
+            .rstrip(b"=")
+            .decode()
+        )
         fake_token = f"{header}.{body}."
 
         response = await client.get(

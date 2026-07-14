@@ -1,4 +1,5 @@
 """Structured logging with secret masking and request ID middleware."""
+
 import logging
 import re
 import time
@@ -43,6 +44,7 @@ def _mask_processor(logger, method_name, event_dict):
 def configure_logging(service_name: str, level: str = "INFO") -> None:
     """Configure structlog with JSON processing in prod, colored output in dev."""
     from shared.config.settings import get_settings
+
     settings = get_settings()
     is_prod = settings.app_env == "production"
 
