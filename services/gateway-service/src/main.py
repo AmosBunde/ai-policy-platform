@@ -10,6 +10,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from shared.config.settings import get_settings
+from shared.utils.errors import register_exception_handlers
 from shared.utils.logging import RequestIdMiddleware, configure_logging
 from src.middleware.security import SecurityHeadersMiddleware
 from src.routes import auth, documents, health, reports, search, users
@@ -43,6 +44,7 @@ app = FastAPI(
 # Rate limiting
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+register_exception_handlers(app)
 
 # Security headers middleware
 app.add_middleware(SecurityHeadersMiddleware)

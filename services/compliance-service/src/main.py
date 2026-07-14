@@ -10,10 +10,14 @@ from fastapi.responses import StreamingResponse
 from prometheus_client import Counter, Histogram, make_asgi_app
 
 from shared.config.settings import get_settings
+from shared.utils.errors import register_exception_handlers
 from shared.utils.internal_auth import require_internal_token
+from shared.utils.logging import RequestIdMiddleware, configure_logging
 from src.generator import VALID_TEMPLATES, render_report, validate_template_id
 
 settings = get_settings()
+
+configure_logging("compliance-service", settings.log_level)
 
 # Prometheus metrics
 http_requests_total = Counter(
@@ -52,6 +56,9 @@ app = FastAPI(
     lifespan=lifespan,
     dependencies=[Depends(require_internal_token)],
 )
+
+app.add_middleware(RequestIdMiddleware)
+register_exception_handlers(app)
 
 
 @app.middleware("http")
