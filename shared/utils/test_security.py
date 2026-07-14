@@ -5,7 +5,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
-from jose import jwt as jose_jwt
+
 
 # Set a test JWT secret before importing the module
 os.environ["JWT_SECRET"] = "test-secret-key-that-is-at-least-32-characters-long!"

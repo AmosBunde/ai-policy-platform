@@ -5,7 +5,8 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import bcrypt as _bcrypt
-from jose import JWTError, jwt
+import jwt
+from jwt import PyJWTError as JWTError
 
 from shared.config.settings import get_settings
 
@@ -95,7 +96,7 @@ def create_refresh_token(user_id: uuid.UUID) -> str:
 def decode_token(token: str) -> dict:
     """Decode and validate a JWT token.
 
-    Raises JWTError on invalid/expired tokens.
+    Raises JWTError (jwt.PyJWTError) on invalid/expired tokens.
     """
     secret = _get_jwt_secret()
     try:
@@ -103,7 +104,7 @@ def decode_token(token: str) -> dict:
             token,
             secret,
             algorithms=_ALLOWED_ALGORITHMS,
-            options={"require_exp": True, "require_iat": True},
+            options={"require": ["exp", "iat"]},
         )
         return payload
     except JWTError:
