@@ -9,7 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.config.settings import get_settings
 from shared.models.orm import User
-from shared.models.schemas import LoginRequest, TokenPair, UserCreate, UserResponse
+from shared.models.schemas import (
+    LoginRequest,
+    TokenPair,
+    UserCreate,
+    UserResponse,
+    UserRole,
+)
 from shared.utils.database import get_db
 from shared.utils.security import (
     create_access_token,
@@ -108,7 +114,7 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
         id=user.id,
         email=user.email,
         full_name=user.full_name,
-        role=user.role,
+        role=UserRole(user.role),
         organization=user.organization,
         is_active=user.is_active,
         created_at=user.created_at,
