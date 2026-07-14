@@ -4,13 +4,27 @@ Verifies that internal service routes reject requests without the shared
 internal token, accept requests carrying it, and keep health probes open.
 """
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 from fastapi.testclient import TestClient
 
 from shared.config.settings import get_settings
+from shared.utils.database import get_db
 from shared.utils.internal_auth import INTERNAL_TOKEN_HEADER
 
 TEST_TOKEN = "internal-token-that-is-at-least-32-characters-long!"
+
+
+def _mock_db_session():
+    """The sources routes need a DB; auth tests only care about status codes."""
+    session = AsyncMock()
+    result = MagicMock()
+    result.scalar_one.return_value = 0
+    result.scalar_one_or_none.return_value = None
+    result.scalars.return_value.all.return_value = []
+    session.execute.return_value = result
+    return session
 
 
 @pytest.fixture
@@ -20,7 +34,9 @@ def client_with_token(monkeypatch):
     get_settings.cache_clear()
     from src.main import app
 
+    app.dependency_overrides[get_db] = _mock_db_session
     yield TestClient(app, raise_server_exceptions=False)
+    app.dependency_overrides.clear()
     get_settings.cache_clear()
 
 
@@ -31,7 +47,9 @@ def client_without_token(monkeypatch):
     get_settings.cache_clear()
     from src.main import app
 
+    app.dependency_overrides[get_db] = _mock_db_session
     yield TestClient(app)
+    app.dependency_overrides.clear()
     get_settings.cache_clear()
 
 

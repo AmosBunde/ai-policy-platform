@@ -99,7 +99,9 @@ async def create_source(
 ) -> SourceResponse:
     """Register a new regulatory source for crawling."""
     existing = (
-        await db.execute(select(RegulatorySource).where(RegulatorySource.url == body.url))
+        await db.execute(
+            select(RegulatorySource).where(RegulatorySource.url == body.url)
+        )
     ).scalar_one_or_none()
     if existing is not None:
         raise HTTPException(
