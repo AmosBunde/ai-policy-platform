@@ -11,6 +11,7 @@ from shared.config.settings import get_settings
 from shared.utils.errors import register_exception_handlers
 from shared.utils.internal_auth import require_internal_token
 from shared.utils.logging import RequestIdMiddleware, configure_logging
+from src.sources import router as sources_router
 
 settings = get_settings()
 
@@ -49,7 +50,6 @@ ingestion_queue_depth = Gauge(
 _ALLOWED_EXTENSIONS = {"pdf", "html", "htm", "txt", "xml"}
 _MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
 _PATH_TRAVERSAL_RE = re.compile(r"(\.\.|/|\\)")
-_UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 
 
 def _validate_filename(filename: str) -> str:
@@ -65,12 +65,6 @@ def _validate_filename(filename: str) -> str:
             detail=f"File type not allowed. Accepted: {', '.join(sorted(_ALLOWED_EXTENSIONS))}",
         )
     return ext
-
-
-def _validate_uuid(value: str) -> str:
-    if not _UUID_RE.match(value):
-        raise HTTPException(status_code=400, detail="Invalid ID format")
-    return value
 
 
 @asynccontextmanager
@@ -110,30 +104,8 @@ async def health():
     return {"status": "healthy", "service": "ingestion"}
 
 
-# ── Sources ───────────────────────────────────────────────
-@app.get("/api/v1/sources")
-async def list_sources(page: int = 1, page_size: int = 20):
-    """List regulatory sources (paginated)."""
-    return {"message": "Requires database", "page": page, "page_size": page_size}
-
-
-@app.post("/api/v1/sources", status_code=201)
-async def create_source(request: Request):
-    """Create a new regulatory source (admin only)."""
-    body = await request.json()
-    url = body.get("url", "")
-    if not re.match(r"^https?://", url):
-        raise HTTPException(
-            status_code=400, detail="URL must start with http:// or https://"
-        )
-    return {"message": "Source creation requires database", "url": url}
-
-
-@app.post("/api/v1/sources/{source_id}/crawl")
-async def trigger_crawl(source_id: str):
-    """Trigger manual crawl for a source (admin only)."""
-    _validate_uuid(source_id)
-    return {"source_id": source_id, "status": "crawl_queued"}
+# ── Sources & stats (DB-backed) ───────────────────────────
+app.include_router(sources_router)
 
 
 # ── Upload ────────────────────────────────────────────────
@@ -181,12 +153,5 @@ async def upload_document(file: UploadFile):
     }
 
 
-# ── Stats ─────────────────────────────────────────────────
-@app.get("/api/v1/ingestion/stats")
-async def ingestion_stats():
-    """Get ingestion statistics."""
-    return {
-        "docs_ingested": docs_ingested_total._value.get(),
-        "errors": ingestion_errors_total._metrics,
-        "queue_depth": ingestion_queue_depth._value.get(),
-    }
+# Stats moved to src/sources.py (DB-backed, mounted via sources_router);
+# Prometheus counters remain exposed on /metrics.
