@@ -6,6 +6,7 @@ import time
 import uuid
 
 import structlog
+from structlog.typing import Processor
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
@@ -48,7 +49,7 @@ def configure_logging(service_name: str, level: str = "INFO") -> None:
     settings = get_settings()
     is_prod = settings.app_env == "production"
 
-    shared_processors = [
+    shared_processors: list[Processor] = [
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.add_log_level,
         structlog.stdlib.add_logger_name,
@@ -56,10 +57,11 @@ def configure_logging(service_name: str, level: str = "INFO") -> None:
         _mask_processor,
     ]
 
-    if is_prod:
-        renderer = structlog.processors.JSONRenderer()
-    else:
-        renderer = structlog.dev.ConsoleRenderer()
+    renderer: Processor = (
+        structlog.processors.JSONRenderer()
+        if is_prod
+        else structlog.dev.ConsoleRenderer()
+    )
 
     structlog.configure(
         processors=[
