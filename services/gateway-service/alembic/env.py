@@ -42,8 +42,25 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+def _include_object(obj, name, type_, reflected, compare_to):
+    """Exclude the pgvector column/index from autogenerate comparison.
+
+    The ORM deliberately omits document_embeddings.embedding (pgvector is
+    not a shared dependency); the column is managed purely by migrations.
+    """
+    if type_ == "column" and name == "embedding":
+        return False
+    if type_ == "index" and name == "idx_embeddings_vector":
+        return False
+    return True
+
+
 def do_run_migrations(connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        include_object=_include_object,
+    )
     with context.begin_transaction():
         context.run_migrations()
 
