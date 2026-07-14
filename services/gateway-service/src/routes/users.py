@@ -27,7 +27,7 @@ def _user_to_response(user: User) -> UserResponse:
         id=user.id,
         email=user.email,
         full_name=user.full_name,
-        role=user.role,
+        role=UserRole(user.role),
         organization=user.organization,
         is_active=user.is_active,
         created_at=user.created_at,
