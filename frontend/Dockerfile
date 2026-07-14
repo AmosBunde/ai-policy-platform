@@ -17,7 +17,7 @@ ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
 # Stage 2: Serve
-FROM nginx:1.25-alpine
+FROM nginx:1.31-alpine
 
 # Security: disable server version header
 RUN sed -i 's/# server_tokens off;/server_tokens off;/' /etc/nginx/nginx.conf || true
