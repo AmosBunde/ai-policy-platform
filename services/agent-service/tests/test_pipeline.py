@@ -1,7 +1,8 @@
 """Tests for the LangGraph agent pipeline — all with mocked OpenAI."""
+
 import json
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 
 from src.pipeline import (
     AgentState,
@@ -12,7 +13,6 @@ from src.pipeline import (
     drafter_node,
     aggregator_node,
     should_skip_drafter,
-    error_handler_node,
     _validate_summary_output,
     _validate_classification_output,
     _validate_impact_output,
@@ -29,8 +29,8 @@ def sample_state() -> AgentState:
     return AgentState(
         document_id="test-doc-001",
         raw_content="The European Union has adopted new regulations requiring all AI systems "
-                     "used in hiring decisions to undergo mandatory bias audits before deployment. "
-                     "Companies must comply by January 1, 2027.",
+        "used in hiring decisions to undergo mandatory bias audits before deployment. "
+        "Companies must comply by January 1, 2027.",
         metadata={"source": "eu_official", "jurisdiction": "EU"},
         summary=None,
         key_changes=None,
@@ -68,17 +68,23 @@ class TestSummarizerNode:
     @pytest.mark.asyncio
     async def test_summarizer_success(self, sample_state):
         mock_llm_result = {
-            "content": json.dumps({
-                "summary": "The EU requires AI bias audits.",
-                "key_changes": [{"change": "Mandatory bias audits"}],
-                "affected_entities": ["AI companies"],
-                "effective_dates": ["2027-01-01"],
-            }),
+            "content": json.dumps(
+                {
+                    "summary": "The EU requires AI bias audits.",
+                    "key_changes": [{"change": "Mandatory bias audits"}],
+                    "affected_entities": ["AI companies"],
+                    "effective_dates": ["2027-01-01"],
+                }
+            ),
             "input_tokens": 500,
             "output_tokens": 200,
             "cost": 0.005,
         }
-        with patch("src.llm_client.call_llm", new_callable=AsyncMock, return_value=mock_llm_result):
+        with patch(
+            "src.llm_client.call_llm",
+            new_callable=AsyncMock,
+            return_value=mock_llm_result,
+        ):
             result = await summarizer_node(sample_state)
             assert result["summary"] == "The EU requires AI bias audits."
             assert len(result["key_changes"]) == 1
@@ -86,7 +92,11 @@ class TestSummarizerNode:
 
     @pytest.mark.asyncio
     async def test_summarizer_handles_llm_failure(self, sample_state):
-        with patch("src.llm_client.call_llm", new_callable=AsyncMock, side_effect=RuntimeError("LLM down")):
+        with patch(
+            "src.llm_client.call_llm",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("LLM down"),
+        ):
             result = await summarizer_node(sample_state)
             assert result["summary"] == ""
             assert any("Summarizer failed" in e for e in result["errors"])
@@ -98,15 +108,23 @@ class TestClassifierNode:
         sample_state["summary"] = "AI regulation summary"
         sample_state["key_changes"] = []
         mock_result = {
-            "content": json.dumps([
-                {"domain": "safety", "confidence": 0.95, "sub_categories": ["bias"]},
-                {"domain": "transparency", "confidence": 0.7, "sub_categories": []},
-            ]),
+            "content": json.dumps(
+                [
+                    {
+                        "domain": "safety",
+                        "confidence": 0.95,
+                        "sub_categories": ["bias"],
+                    },
+                    {"domain": "transparency", "confidence": 0.7, "sub_categories": []},
+                ]
+            ),
             "input_tokens": 300,
             "output_tokens": 100,
             "cost": 0.003,
         }
-        with patch("src.llm_client.call_llm", new_callable=AsyncMock, return_value=mock_result):
+        with patch(
+            "src.llm_client.call_llm", new_callable=AsyncMock, return_value=mock_result
+        ):
             result = await classifier_node(sample_state)
             assert len(result["classification"]) == 2
             assert result["classification"][0]["domain"] == "safety"
@@ -118,15 +136,29 @@ class TestImpactRankerNode:
         sample_state["summary"] = "AI regulation"
         sample_state["classification"] = [{"domain": "safety", "confidence": 0.9}]
         mock_result = {
-            "content": json.dumps([
-                {"region": "EU", "product_category": "Enterprise AI", "score": 9, "justification": "Direct regulation"},
-                {"region": "US-Federal", "product_category": "SaaS", "score": 3, "justification": "Indirect impact"},
-            ]),
+            "content": json.dumps(
+                [
+                    {
+                        "region": "EU",
+                        "product_category": "Enterprise AI",
+                        "score": 9,
+                        "justification": "Direct regulation",
+                    },
+                    {
+                        "region": "US-Federal",
+                        "product_category": "SaaS",
+                        "score": 3,
+                        "justification": "Indirect impact",
+                    },
+                ]
+            ),
             "input_tokens": 400,
             "output_tokens": 150,
             "cost": 0.004,
         }
-        with patch("src.llm_client.call_llm", new_callable=AsyncMock, return_value=mock_result):
+        with patch(
+            "src.llm_client.call_llm", new_callable=AsyncMock, return_value=mock_result
+        ):
             result = await impact_ranker_node(sample_state)
             assert len(result["impact_scores"]) == 2
             assert result["impact_scores"][0]["score"] == 9
@@ -136,18 +168,32 @@ class TestImpactRankerNode:
         sample_state["summary"] = "test"
         sample_state["classification"] = []
         mock_result = {
-            "content": json.dumps([
-                {"region": "EU", "product_category": "SaaS", "score": 15, "justification": "Over"},
-                {"region": "UK", "product_category": "SaaS", "score": -2, "justification": "Under"},
-            ]),
+            "content": json.dumps(
+                [
+                    {
+                        "region": "EU",
+                        "product_category": "SaaS",
+                        "score": 15,
+                        "justification": "Over",
+                    },
+                    {
+                        "region": "UK",
+                        "product_category": "SaaS",
+                        "score": -2,
+                        "justification": "Under",
+                    },
+                ]
+            ),
             "input_tokens": 100,
             "output_tokens": 50,
             "cost": 0.001,
         }
-        with patch("src.llm_client.call_llm", new_callable=AsyncMock, return_value=mock_result):
+        with patch(
+            "src.llm_client.call_llm", new_callable=AsyncMock, return_value=mock_result
+        ):
             result = await impact_ranker_node(sample_state)
             assert result["impact_scores"][0]["score"] == 10  # Clamped to max
-            assert result["impact_scores"][1]["score"] == 1   # Clamped to min
+            assert result["impact_scores"][1]["score"] == 1  # Clamped to min
 
 
 class TestDrafterNode:
@@ -162,7 +208,9 @@ class TestDrafterNode:
             "output_tokens": 300,
             "cost": 0.007,
         }
-        with patch("src.llm_client.call_llm", new_callable=AsyncMock, return_value=mock_result):
+        with patch(
+            "src.llm_client.call_llm", new_callable=AsyncMock, return_value=mock_result
+        ):
             result = await drafter_node(sample_state)
             assert result["draft_response"] is not None
             assert "acknowledge" in result["draft_response"]
@@ -193,7 +241,10 @@ class TestAggregatorNode:
         sample_state["classification"] = [{"domain": "safety"}]
         sample_state["impact_scores"] = [{"score": 8}]
         sample_state["draft_response"] = "Draft"
-        sample_state["token_usage"] = {"summarizer": {"cost": 0.01}, "classifier": {"cost": 0.005}}
+        sample_state["token_usage"] = {
+            "summarizer": {"cost": 0.01},
+            "classifier": {"cost": 0.005},
+        }
 
         result = await aggregator_node(sample_state)
         assert result["confidence_score"] == 1.0

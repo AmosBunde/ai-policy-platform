@@ -12,6 +12,7 @@ Usage (internal service):
 Usage (gateway, outgoing):
     httpx.AsyncClient(headers=internal_auth_headers())
 """
+
 import hmac
 import logging
 

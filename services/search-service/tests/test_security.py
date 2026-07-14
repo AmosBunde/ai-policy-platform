@@ -1,4 +1,5 @@
 """Tests for search security: query limits, wildcard rejection, XSS escaping."""
+
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
@@ -44,10 +45,13 @@ class TestWildcardRejection:
 
     @pytest.mark.asyncio
     async def test_api_rejects_wildcard_only(self, client):
-        resp = await client.post("/api/v1/search", json={
-            "query": "***",
-            "search_type": "keyword",
-        })
+        resp = await client.post(
+            "/api/v1/search",
+            json={
+                "query": "***",
+                "search_type": "keyword",
+            },
+        )
         assert resp.status_code == 400
         assert "Wildcard" in resp.json()["detail"]
 
@@ -55,18 +59,24 @@ class TestWildcardRejection:
 class TestEmptyQueryRejection:
     @pytest.mark.asyncio
     async def test_api_rejects_empty_query(self, client):
-        resp = await client.post("/api/v1/search", json={
-            "query": "",
-            "search_type": "keyword",
-        })
+        resp = await client.post(
+            "/api/v1/search",
+            json={
+                "query": "",
+                "search_type": "keyword",
+            },
+        )
         assert resp.status_code == 400
 
     @pytest.mark.asyncio
     async def test_api_rejects_whitespace_query(self, client):
-        resp = await client.post("/api/v1/search", json={
-            "query": "   ",
-            "search_type": "keyword",
-        })
+        resp = await client.post(
+            "/api/v1/search",
+            json={
+                "query": "   ",
+                "search_type": "keyword",
+            },
+        )
         assert resp.status_code == 400
 
 
@@ -85,7 +95,7 @@ class TestXSSInSearchResults:
         assert 'onerror="alert(1)"' not in result
 
     def test_mixed_xss_and_highlights(self):
-        result = escape_snippet('<em>safe</em> <script>evil</script>')
+        result = escape_snippet("<em>safe</em> <script>evil</script>")
         assert "<em>safe</em>" in result
         assert "<script>" not in result
 

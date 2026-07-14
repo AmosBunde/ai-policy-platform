@@ -1,4 +1,5 @@
 """Async email delivery via aiosmtplib with TLS and header injection prevention."""
+
 import html
 import logging
 import re
@@ -66,7 +67,7 @@ def render_email_html(
             <h3 style="color: #2d3748;">{safe_doc_title}</h3>
             <p style="color: #4a5568;">{safe_summary}</p>
             <p><span style="display: inline-block; background: {urgency_color}; color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.85em;">Urgency: {safe_urgency}</span></p>
-            {f'<p><a href="{safe_url}" style="color: #3182ce;">View Details</a></p>' if safe_url else ''}
+            {f'<p><a href="{safe_url}" style="color: #3182ce;">View Details</a></p>' if safe_url else ""}
         </div>
         <div style="padding: 15px 20px; background: #f7fafc; color: #a0aec0; font-size: 0.8em;">
             RegulatorAI Notification Service

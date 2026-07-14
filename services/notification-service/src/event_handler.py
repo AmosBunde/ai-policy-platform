@@ -1,5 +1,5 @@
 """Event handler: subscribe to document.enriched, evaluate rules, dispatch notifications."""
-import asyncio
+
 import json
 import logging
 import re
@@ -9,7 +9,7 @@ from collections import defaultdict
 import redis.asyncio as aioredis
 
 from shared.config.settings import get_settings
-from src.rule_engine import evaluate_rule, flatten_enrichment
+from src.rule_engine import flatten_enrichment
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -35,7 +35,9 @@ def _check_rate_limit(user_id: str, channel: str) -> bool:
     if len(_rate_limits[user_id][channel]) >= _MAX_NOTIFICATIONS_PER_DAY:
         logger.warning(
             "Rate limit exceeded for user %s on channel %s (%d/day)",
-            user_id, channel, _MAX_NOTIFICATIONS_PER_DAY,
+            user_id,
+            channel,
+            _MAX_NOTIFICATIONS_PER_DAY,
         )
         return False
 
@@ -62,6 +64,7 @@ async def dispatch_notification(
 
     if channel == "email":
         from src.channels.email import render_email_html, send_email
+
         html_body = render_email_html(
             title=title,
             document_title=document_title,
@@ -73,6 +76,7 @@ async def dispatch_notification(
 
     elif channel == "slack":
         from src.channels.slack import send_slack
+
         return await send_slack(
             title=title,
             document_title=document_title,
@@ -83,6 +87,7 @@ async def dispatch_notification(
 
     elif channel == "inapp":
         from src.channels.inapp import create_notification
+
         create_notification(
             user_id=user_id,
             watch_rule_id=watch_rule_id,

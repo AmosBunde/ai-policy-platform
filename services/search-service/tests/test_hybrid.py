@@ -1,5 +1,5 @@
 """Tests for hybrid search: RRF calculation, deduplication, alpha weighting."""
-import pytest
+
 from src.hybrid_search import reciprocal_rank_fusion, _determine_source
 
 
@@ -50,7 +50,9 @@ class TestRRF:
         assert results[0]["document_id"] == "doc1"
 
     def test_alpha_weighting_keyword_heavy(self):
-        keyword = [{"document_id": "kw1", "title": "KW", "score": 5.0, "highlights": []}]
+        keyword = [
+            {"document_id": "kw1", "title": "KW", "score": 5.0, "highlights": []}
+        ]
         semantic = [{"document_id": "sem1", "chunk_text": "t", "similarity": 0.9}]
 
         results = reciprocal_rank_fusion(keyword, semantic, alpha=0.9)
@@ -59,7 +61,9 @@ class TestRRF:
         assert kw_score > sem_score
 
     def test_alpha_weighting_semantic_heavy(self):
-        keyword = [{"document_id": "kw1", "title": "KW", "score": 5.0, "highlights": []}]
+        keyword = [
+            {"document_id": "kw1", "title": "KW", "score": 5.0, "highlights": []}
+        ]
         semantic = [{"document_id": "sem1", "chunk_text": "t", "similarity": 0.9}]
 
         results = reciprocal_rank_fusion(keyword, semantic, alpha=0.1)
@@ -73,7 +77,9 @@ class TestRRF:
         assert len(results) == 1
 
     def test_empty_semantic_results(self):
-        keyword = [{"document_id": "doc1", "title": "T", "score": 5.0, "highlights": []}]
+        keyword = [
+            {"document_id": "doc1", "title": "T", "score": 5.0, "highlights": []}
+        ]
         results = reciprocal_rank_fusion(keyword, [])
         assert len(results) == 1
 
@@ -82,7 +88,9 @@ class TestRRF:
         assert results == []
 
     def test_custom_k_parameter(self):
-        keyword = [{"document_id": "doc1", "title": "T", "score": 5.0, "highlights": []}]
+        keyword = [
+            {"document_id": "doc1", "title": "T", "score": 5.0, "highlights": []}
+        ]
         semantic = [{"document_id": "doc2", "chunk_text": "t", "similarity": 0.9}]
 
         results_k10 = reciprocal_rank_fusion(keyword, semantic, k=10)

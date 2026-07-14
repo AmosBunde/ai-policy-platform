@@ -1,9 +1,9 @@
 """Tests for SQLAlchemy ORM models."""
+
 import hashlib
 import uuid
-from datetime import datetime, timezone
+from datetime import timezone
 
-import pytest
 
 from shared.models.orm import (
     AuditLog,
@@ -190,7 +190,9 @@ class TestWatchRuleModel:
             channels=["email", "slack"],
         )
         assert rule.name == "EU AI Watch"
-        assert rule.is_active is None  # Not set via default in Python, uses server_default
+        assert (
+            rule.is_active is None
+        )  # Not set via default in Python, uses server_default
 
     def test_watch_rule_repr(self):
         rule = WatchRule(

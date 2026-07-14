@@ -1,10 +1,10 @@
 """Celery tasks for scheduled document ingestion."""
+
 import asyncio
 import json
 import logging
 
 from celery import Celery
-from celery.schedules import crontab
 
 from shared.config.settings import get_settings
 
@@ -50,16 +50,22 @@ def ingest_all_sources():
 async def _ingest_source_async(source_id: str):
     """Async implementation of source ingestion."""
     from sqlalchemy import select
-    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession,
+        async_sessionmaker,
+        create_async_engine,
+    )
 
     from shared.models.orm import RegulatoryDocument, RegulatorySource
     from src.crawlers.rss_crawler import crawl_rss
     from src.crawlers.web_crawler import crawl_web
     from src.parsers.html_parser import parse_html
-    from src.parsers.normalizer import generate_content_hash, normalize
+    from src.parsers.normalizer import normalize
 
     engine = create_async_engine(settings.database_url, echo=False)
-    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    session_factory = async_sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False
+    )
 
     async with session_factory() as session:
         result = await session.execute(
@@ -75,25 +81,29 @@ async def _ingest_source_async(source_id: str):
             raw_entries = await crawl_rss(source.url)
             for entry in raw_entries:
                 parsed = parse_html(entry.content)
-                entries.append(normalize(
-                    title=entry.title,
-                    content=parsed["content"],
-                    url=entry.link,
-                    jurisdiction=source.jurisdiction,
-                    source_id=str(source.id),
-                    external_id=entry.external_id,
-                    published_at=entry.published,
-                ))
+                entries.append(
+                    normalize(
+                        title=entry.title,
+                        content=parsed["content"],
+                        url=entry.link,
+                        jurisdiction=source.jurisdiction,
+                        source_id=str(source.id),
+                        external_id=entry.external_id,
+                        published_at=entry.published,
+                    )
+                )
         elif source.source_type in ("crawler", "api"):
             result = await crawl_web(source.url)
-            entries.append(normalize(
-                title=result["title"],
-                content=result["content"],
-                url=result["url"],
-                jurisdiction=source.jurisdiction,
-                source_id=str(source.id),
-                raw_metadata=result["metadata"],
-            ))
+            entries.append(
+                normalize(
+                    title=result["title"],
+                    content=result["content"],
+                    url=result["url"],
+                    jurisdiction=source.jurisdiction,
+                    source_id=str(source.id),
+                    raw_metadata=result["metadata"],
+                )
+            )
 
         # Deduplicate and insert
         new_count = 0
@@ -112,6 +122,7 @@ async def _ingest_source_async(source_id: str):
 
         # Update last_crawled_at
         from datetime import datetime, timezone
+
         source.last_crawled_at = datetime.now(timezone.utc)
 
         await session.commit()
@@ -120,11 +131,17 @@ async def _ingest_source_async(source_id: str):
         if new_count > 0:
             try:
                 import redis.asyncio as aioredis
+
                 r = aioredis.from_url(settings.redis_url, decode_responses=True)
-                await r.publish("document.ingested", json.dumps({
-                    "source_id": str(source.id),
-                    "new_documents": new_count,
-                }))
+                await r.publish(
+                    "document.ingested",
+                    json.dumps(
+                        {
+                            "source_id": str(source.id),
+                            "new_documents": new_count,
+                        }
+                    ),
+                )
                 await r.close()
             except Exception:
                 pass
@@ -137,16 +154,22 @@ async def _ingest_source_async(source_id: str):
 async def _ingest_all_async():
     """Fetch all active sources and ingest each."""
     from sqlalchemy import select
-    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession,
+        async_sessionmaker,
+        create_async_engine,
+    )
 
     from shared.models.orm import RegulatorySource
 
     engine = create_async_engine(settings.database_url, echo=False)
-    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    session_factory = async_sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False
+    )
 
     async with session_factory() as session:
         result = await session.execute(
-            select(RegulatorySource).where(RegulatorySource.is_active == True)
+            select(RegulatorySource).where(RegulatorySource.is_active.is_(True))
         )
         sources = result.scalars().all()
 

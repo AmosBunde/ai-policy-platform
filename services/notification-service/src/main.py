@@ -1,11 +1,12 @@
 """RegulatorAI Notification Service — watch rules, multi-channel delivery."""
+
 import re
 import time
 import uuid as uuid_mod
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from prometheus_client import Counter, Histogram, make_asgi_app
 
 from shared.config.settings import get_settings
@@ -19,15 +20,18 @@ configure_logging("notification-service", settings.log_level)
 
 # Prometheus metrics
 http_requests_total = Counter(
-    "http_requests_total", "Total HTTP requests",
+    "http_requests_total",
+    "Total HTTP requests",
     ["method", "path", "status"],
 )
 http_request_duration_seconds = Histogram(
-    "http_request_duration_seconds", "HTTP request duration",
+    "http_request_duration_seconds",
+    "HTTP request duration",
     ["method", "path"],
 )
 notifications_sent_total = Counter(
-    "notifications_sent_total", "Notifications sent",
+    "notifications_sent_total",
+    "Notifications sent",
     ["channel"],
 )
 
@@ -81,6 +85,7 @@ async def health():
 
 # ── Watch Rules CRUD (user-scoped) ────────────────────────
 
+
 @app.post("/api/v1/watch-rules", status_code=201)
 async def create_watch_rule(request: Request):
     """Create a watch rule for the current user."""
@@ -101,7 +106,9 @@ async def create_watch_rule(request: Request):
     valid_operators = {"equals", "contains", "gte", "lte", "in", "not_in"}
     for cond in conditions:
         if cond.get("operator") not in valid_operators:
-            raise HTTPException(status_code=400, detail=f"Invalid operator: {cond.get('operator')}")
+            raise HTTPException(
+                status_code=400, detail=f"Invalid operator: {cond.get('operator')}"
+            )
 
     channels = body.get("channels", ["inapp"])
 
@@ -174,10 +181,12 @@ async def delete_watch_rule(rule_id: str):
 
 # ── Notifications ──────────────────────────────────────────
 
+
 @app.get("/api/v1/notifications")
 async def list_notifications(user_id: str = "", page: int = 1, page_size: int = 20):
     """Get user's notification history (paginated)."""
     from src.channels.inapp import get_user_notifications
+
     return get_user_notifications(user_id, page=page, page_size=min(page_size, 100))
 
 
@@ -189,8 +198,11 @@ async def mark_notification_read(notification_id: str, request: Request):
     user_id = body.get("user_id", "")
 
     from src.channels.inapp import mark_as_read
+
     if not mark_as_read(notification_id, user_id):
-        raise HTTPException(status_code=404, detail="Notification not found or access denied")
+        raise HTTPException(
+            status_code=404, detail="Notification not found or access denied"
+        )
 
     return {"status": "marked_as_read"}
 
@@ -203,6 +215,7 @@ async def batch_mark_read(request: Request):
     notification_ids = body.get("notification_ids", [])
 
     from src.channels.inapp import batch_mark_as_read
+
     count = batch_mark_as_read(notification_ids, user_id)
     return {"updated": count}
 

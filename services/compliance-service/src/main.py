@@ -1,11 +1,12 @@
 """RegulatorAI Compliance Service — report generation and management."""
+
 import re
 import time
 import uuid as uuid_mod
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
 from prometheus_client import Counter, Histogram, make_asgi_app
 
@@ -21,15 +22,18 @@ configure_logging("compliance-service", settings.log_level)
 
 # Prometheus metrics
 http_requests_total = Counter(
-    "http_requests_total", "Total HTTP requests",
+    "http_requests_total",
+    "Total HTTP requests",
     ["method", "path", "status"],
 )
 http_request_duration_seconds = Histogram(
-    "http_request_duration_seconds", "HTTP request duration",
+    "http_request_duration_seconds",
+    "HTTP request duration",
     ["method", "path"],
 )
 compliance_reports_generated_total = Counter(
-    "compliance_reports_generated_total", "Compliance reports generated",
+    "compliance_reports_generated_total",
+    "Compliance reports generated",
     ["report_type"],
 )
 
@@ -101,10 +105,14 @@ async def create_report(request: Request):
     # Validate document_ids are UUIDs
     for doc_id in document_ids:
         if not _UUID_RE.match(str(doc_id)):
-            raise HTTPException(status_code=400, detail=f"Invalid document_id: {doc_id}")
+            raise HTTPException(
+                status_code=400, detail=f"Invalid document_id: {doc_id}"
+            )
 
     # Build document data (in production, fetch from DB)
-    documents = [{"title": f"Document {doc_id}", "enrichment": None} for doc_id in document_ids]
+    documents = [
+        {"title": f"Document {doc_id}", "enrichment": None} for doc_id in document_ids
+    ]
 
     # Render report HTML
     html_content = render_report(
@@ -128,11 +136,13 @@ async def create_report(request: Request):
         "created_by": created_by,
         "status": "completed",
         "version": version,
-        "versions": [{
-            "version": version,
-            "created_at": now,
-            "html_content": html_content,
-        }],
+        "versions": [
+            {
+                "version": version,
+                "created_at": now,
+                "html_content": html_content,
+            }
+        ],
         "created_at": now,
         "updated_at": now,
     }
@@ -213,16 +223,21 @@ async def download_report(report_id: str, format: str = "pdf"):
 
     if format == "pdf":
         from src.generator import html_to_pdf
+
         content = html_to_pdf(html_content)
         media_type = "application/pdf"
         filename = f"report-{report_id[:8]}.pdf"
     else:
         from src.generator import html_to_docx
+
         content = html_to_docx(html_content, title=report["title"])
-        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        media_type = (
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
         filename = f"report-{report_id[:8]}.docx"
 
     import io
+
     return StreamingResponse(
         io.BytesIO(content),
         media_type=media_type,

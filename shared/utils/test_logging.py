@@ -1,8 +1,4 @@
 """Tests for structured logging and secret masking."""
-import uuid
-from unittest.mock import AsyncMock
-
-import pytest
 
 from shared.utils.logging import (
     _AUTH_PATHS,
@@ -94,6 +90,7 @@ class TestConfigureLogging:
 
     def test_configure_prod_mode(self):
         from shared.config.settings import get_settings
+
         settings = get_settings()
         original = settings.app_env
         try:

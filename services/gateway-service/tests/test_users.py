@@ -1,4 +1,5 @@
 """Tests for user management routes."""
+
 import uuid
 from unittest.mock import AsyncMock, MagicMock
 

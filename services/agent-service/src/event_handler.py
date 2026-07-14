@@ -1,9 +1,8 @@
 """Redis event handler: subscribe to document.ingested, trigger pipeline."""
-import asyncio
+
 import json
 import logging
 import re
-import uuid
 
 import redis.asyncio as aioredis
 
@@ -25,7 +24,11 @@ def _validate_uuid(value: str) -> str:
 async def process_document_event(event_data: dict) -> None:
     """Process a document.ingested event: fetch document, run pipeline, publish result."""
     from sqlalchemy import select
-    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession,
+        async_sessionmaker,
+        create_async_engine,
+    )
 
     from shared.models.orm import DocumentEnrichment, RegulatoryDocument
     from src.pipeline import run_pipeline
@@ -40,7 +43,9 @@ async def process_document_event(event_data: dict) -> None:
     logger.info("Processing document: %s", doc_id)
 
     engine = create_async_engine(settings.database_url, echo=False)
-    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    session_factory = async_sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False
+    )
 
     try:
         async with session_factory() as session:
@@ -77,10 +82,13 @@ async def process_document_event(event_data: dict) -> None:
                 await session.commit()
 
                 # Publish success event
-                await _publish_event("document.enriched", {
-                    "document_id": str(document.id),
-                    "urgency_level": enrichment_data.get("urgency_level", "normal"),
-                })
+                await _publish_event(
+                    "document.enriched",
+                    {
+                        "document_id": str(document.id),
+                        "urgency_level": enrichment_data.get("urgency_level", "normal"),
+                    },
+                )
 
                 logger.info("Document enriched: %s", doc_id)
 
@@ -88,10 +96,13 @@ async def process_document_event(event_data: dict) -> None:
                 document.status = "failed"
                 await session.commit()
 
-                await _publish_event("document.failed", {
-                    "document_id": str(document.id),
-                    "error": str(exc)[:500],
-                })
+                await _publish_event(
+                    "document.failed",
+                    {
+                        "document_id": str(document.id),
+                        "error": str(exc)[:500],
+                    },
+                )
 
                 logger.error("Pipeline failed for document %s: %s", doc_id, exc)
 

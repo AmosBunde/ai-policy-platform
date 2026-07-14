@@ -1,7 +1,8 @@
 """Tests for Redis Pub/Sub event system."""
+
 import json
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -50,6 +51,7 @@ class TestSerialization:
 
     def test_serialize_pydantic_model(self):
         from shared.models.schemas import DocumentEvent
+
         event = DocumentEvent(
             event_type="document.ingested",
             document_id=uuid4(),

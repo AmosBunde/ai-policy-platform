@@ -4,6 +4,7 @@ Verifies that common SQLi payloads are rejected across all endpoints.
 The gateway uses parameterized queries via SQLAlchemy ORM and UUID
 validation on path parameters, so injection should be impossible.
 """
+
 import pytest
 from conftest import auth_headers
 
@@ -106,7 +107,12 @@ class TestSQLInjectionInSearch:
     async def test_sqli_in_search_query(self, client, payload):
         response = await client.post(
             "/api/v1/search/",
-            json={"query": payload, "search_type": "keyword", "page": 1, "page_size": 20},
+            json={
+                "query": payload,
+                "search_type": "keyword",
+                "page": 1,
+                "page_size": 20,
+            },
             headers=auth_headers(),
         )
         # Search proxies to search-service; may return 502 if service is down.

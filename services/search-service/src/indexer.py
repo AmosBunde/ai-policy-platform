@@ -1,6 +1,5 @@
 """Event-driven indexer: subscribes to document.enriched, indexes in ES + pgvector."""
-import asyncio
-import html
+
 import json
 import logging
 import re
@@ -62,9 +61,16 @@ async def index_document(doc_id: str, document_data: dict) -> None:
     if content:
         try:
             embedding = await generate_embedding(content[:8000])
-            from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+            from sqlalchemy.ext.asyncio import (
+                AsyncSession,
+                async_sessionmaker,
+                create_async_engine,
+            )
+
             engine = create_async_engine(settings.database_url, echo=False)
-            session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+            session_factory = async_sessionmaker(
+                engine, class_=AsyncSession, expire_on_commit=False
+            )
             async with session_factory() as session:
                 await store_embedding(session, doc_id, 0, content[:2000], embedding)
             await engine.dispose()
@@ -84,11 +90,17 @@ async def process_enriched_event(event_data: dict) -> None:
 
     # Fetch full document from DB
     from sqlalchemy import select
-    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession,
+        async_sessionmaker,
+        create_async_engine,
+    )
     from shared.models.orm import RegulatoryDocument
 
     engine = create_async_engine(settings.database_url, echo=False)
-    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    session_factory = async_sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False
+    )
 
     try:
         async with session_factory() as session:
@@ -100,16 +112,19 @@ async def process_enriched_event(event_data: dict) -> None:
                 logger.error("Document not found for indexing: %s", doc_id)
                 return
 
-            await index_document(doc_id, {
-                "title": doc.title,
-                "content": doc.content,
-                "jurisdiction": doc.jurisdiction,
-                "document_type": doc.document_type,
-                "status": doc.status,
-                "published_at": str(doc.published_at) if doc.published_at else None,
-                "created_at": str(doc.created_at) if doc.created_at else None,
-                "url": doc.url,
-            })
+            await index_document(
+                doc_id,
+                {
+                    "title": doc.title,
+                    "content": doc.content,
+                    "jurisdiction": doc.jurisdiction,
+                    "document_type": doc.document_type,
+                    "status": doc.status,
+                    "published_at": str(doc.published_at) if doc.published_at else None,
+                    "created_at": str(doc.created_at) if doc.created_at else None,
+                    "url": doc.url,
+                },
+            )
     finally:
         await engine.dispose()
 

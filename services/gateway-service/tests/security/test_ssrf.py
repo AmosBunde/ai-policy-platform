@@ -5,6 +5,7 @@ Verifies that:
   - Non-HTTP(S) schemes are rejected
   - Internal IP addresses don't cause SSRF (handled by URL validation or network layer)
 """
+
 import uuid
 
 import pytest

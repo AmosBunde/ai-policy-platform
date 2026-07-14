@@ -1,18 +1,21 @@
 """Shared fixtures for security tests."""
+
 import os
 import sys
 
 # Ensure test environment is set before any imports
-os.environ["JWT_SECRET"] = "test-secret-key-that-is-at-least-32-characters-long-for-testing!"
+os.environ["JWT_SECRET"] = (
+    "test-secret-key-that-is-at-least-32-characters-long-for-testing!"
+)
 os.environ["APP_ENV"] = "development"
 
 # Allow imports from parent tests/ directory
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from shared.config.settings import get_settings
+
 get_settings.cache_clear()
 
-import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from unittest.mock import AsyncMock, MagicMock

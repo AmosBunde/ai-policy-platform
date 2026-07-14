@@ -1,11 +1,10 @@
 """RegulatorAI Ingestion Service — document crawling, parsing, and ingestion."""
-import os
+
 import re
 import time
-import uuid as uuid_mod
 from contextlib import asynccontextmanager
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response, UploadFile, status
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, UploadFile
 from prometheus_client import Counter, Gauge, Histogram, make_asgi_app
 
 from shared.config.settings import get_settings
@@ -19,25 +18,31 @@ configure_logging("ingestion-service", settings.log_level)
 
 # ── Prometheus metrics ────────────────────────────────────
 http_requests_total = Counter(
-    "http_requests_total", "Total HTTP requests",
+    "http_requests_total",
+    "Total HTTP requests",
     ["method", "path", "status"],
 )
 http_request_duration_seconds = Histogram(
-    "http_request_duration_seconds", "HTTP request duration",
+    "http_request_duration_seconds",
+    "HTTP request duration",
     ["method", "path"],
 )
 docs_ingested_total = Counter(
-    "docs_ingested_total", "Documents successfully ingested",
+    "docs_ingested_total",
+    "Documents successfully ingested",
 )
 ingestion_duration_seconds = Histogram(
-    "ingestion_duration_seconds", "Duration of ingestion operations",
+    "ingestion_duration_seconds",
+    "Duration of ingestion operations",
 )
 ingestion_errors_total = Counter(
-    "ingestion_errors_total", "Ingestion errors",
+    "ingestion_errors_total",
+    "Ingestion errors",
     ["error_type"],
 )
 ingestion_queue_depth = Gauge(
-    "ingestion_queue_depth", "Number of documents awaiting processing",
+    "ingestion_queue_depth",
+    "Number of documents awaiting processing",
 )
 
 # ── File upload security ──────────────────────────────────
@@ -118,7 +123,9 @@ async def create_source(request: Request):
     body = await request.json()
     url = body.get("url", "")
     if not re.match(r"^https?://", url):
-        raise HTTPException(status_code=400, detail="URL must start with http:// or https://")
+        raise HTTPException(
+            status_code=400, detail="URL must start with http:// or https://"
+        )
     return {"message": "Source creation requires database", "url": url}
 
 
@@ -140,15 +147,17 @@ async def upload_document(file: UploadFile):
     if len(contents) > _MAX_FILE_SIZE:
         raise HTTPException(
             status_code=413,
-            detail=f"File exceeds maximum size of {_MAX_FILE_SIZE // (1024*1024)}MB",
+            detail=f"File exceeds maximum size of {_MAX_FILE_SIZE // (1024 * 1024)}MB",
         )
 
     # Parse based on type
     if ext == "pdf":
         from src.parsers.pdf_parser import parse_pdf
+
         result = parse_pdf(contents)
     elif ext in ("html", "htm"):
         from src.parsers.html_parser import parse_html
+
         result = parse_html(contents.decode("utf-8", errors="replace"))
     elif ext in ("txt", "xml"):
         text = contents.decode("utf-8", errors="replace")
@@ -157,6 +166,7 @@ async def upload_document(file: UploadFile):
         raise HTTPException(status_code=400, detail="Unsupported file type")
 
     from src.parsers.normalizer import normalize
+
     normalized = normalize(
         title=result.get("title", file.filename),
         content=result.get("content", ""),
@@ -164,7 +174,11 @@ async def upload_document(file: UploadFile):
     )
 
     docs_ingested_total.inc()
-    return {"status": "uploaded", "content_hash": normalized["content_hash"], "title": normalized["title"]}
+    return {
+        "status": "uploaded",
+        "content_hash": normalized["content_hash"],
+        "title": normalized["title"],
+    }
 
 
 # ── Stats ─────────────────────────────────────────────────

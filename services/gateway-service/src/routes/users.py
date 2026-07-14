@@ -1,4 +1,5 @@
 """User management routes."""
+
 import uuid as uuid_mod
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -26,7 +27,7 @@ def _user_to_response(user: User) -> UserResponse:
         id=user.id,
         email=user.email,
         full_name=user.full_name,
-        role=user.role,
+        role=UserRole(user.role),
         organization=user.organization,
         is_active=user.is_active,
         created_at=user.created_at,
@@ -68,7 +69,9 @@ async def update_user(
     try:
         target_id = uuid_mod.UUID(user_id)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID"
+        )
 
     # Non-admin users can only update themselves
     is_self = current_user.id == target_id
@@ -83,7 +86,9 @@ async def update_user(
     result = await db.execute(select(User).where(User.id == target_id))
     user = result.scalar_one_or_none()
     if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     # Prevent privilege escalation: non-admins cannot change roles
     if update.role is not None and not is_admin:
@@ -124,7 +129,9 @@ async def delete_user(
     try:
         target_id = uuid_mod.UUID(user_id)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID"
+        )
 
     if current_user.id == target_id:
         raise HTTPException(
@@ -135,7 +142,9 @@ async def delete_user(
     result = await db.execute(select(User).where(User.id == target_id))
     user = result.scalar_one_or_none()
     if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     user.is_active = False
     await db.flush()

@@ -1,6 +1,6 @@
 """Watch rule evaluation engine — explicit operator mapping only (no eval/exec)."""
+
 import logging
-import re
 from typing import Any
 
 logger = logging.getLogger(__name__)

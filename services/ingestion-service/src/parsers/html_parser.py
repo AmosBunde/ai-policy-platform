@@ -1,4 +1,5 @@
 """HTML content extraction with security sanitization."""
+
 import re
 
 from bs4 import BeautifulSoup
@@ -15,8 +16,20 @@ def parse_html(html_content: str) -> dict:
     soup = BeautifulSoup(html_content, "html.parser")
 
     # Remove dangerous elements
-    for tag in soup(["script", "style", "iframe", "object", "embed", "form",
-                     "noscript", "link", "meta", "base"]):
+    for tag in soup(
+        [
+            "script",
+            "style",
+            "iframe",
+            "object",
+            "embed",
+            "form",
+            "noscript",
+            "link",
+            "meta",
+            "base",
+        ]
+    ):
         tag.decompose()
 
     # Remove event handlers from remaining tags

@@ -1,4 +1,5 @@
 """OpenAI client wrapper with retry, token counting, cost tracking, and PII stripping."""
+
 import asyncio
 import json
 import logging
@@ -46,10 +47,14 @@ def count_tokens(text: str, model: str = "gpt-4o") -> int:
     return len(encoding.encode(text))
 
 
-def calculate_cost(input_tokens: int, output_tokens: int, model: str = "gpt-4o") -> float:
+def calculate_cost(
+    input_tokens: int, output_tokens: int, model: str = "gpt-4o"
+) -> float:
     """Calculate cost in USD for the given token usage."""
     pricing = _COST_PER_1K.get(model, _COST_PER_1K["gpt-4o"])
-    return (input_tokens / 1000 * pricing["input"]) + (output_tokens / 1000 * pricing["output"])
+    return (input_tokens / 1000 * pricing["input"]) + (
+        output_tokens / 1000 * pricing["output"]
+    )
 
 
 async def call_llm(
@@ -72,9 +77,7 @@ async def call_llm(
     # Token limit check
     input_tokens = count_tokens(safe_prompt, model)
     if input_tokens > token_limit:
-        raise ValueError(
-            f"Prompt exceeds token limit: {input_tokens} > {token_limit}"
-        )
+        raise ValueError(f"Prompt exceeds token limit: {input_tokens} > {token_limit}")
 
     # Never log prompt content (may contain sensitive regulatory text)
     logger.info("LLM call: model=%s, input_tokens=%d", model, input_tokens)
@@ -118,12 +121,17 @@ async def call_llm(
                 delay = _RETRY_DELAYS[attempt - 1]
                 logger.warning(
                     "LLM call attempt %d/%d failed: %s. Retrying in %.1fs...",
-                    attempt, _MAX_RETRIES, type(exc).__name__, delay,
+                    attempt,
+                    _MAX_RETRIES,
+                    type(exc).__name__,
+                    delay,
                 )
                 await asyncio.sleep(delay)
             else:
                 logger.error(
-                    "LLM call failed after %d attempts: %s", _MAX_RETRIES, exc,
+                    "LLM call failed after %d attempts: %s",
+                    _MAX_RETRIES,
+                    exc,
                 )
 
     raise RuntimeError(f"LLM call failed after {_MAX_RETRIES} retries: {last_error}")
@@ -134,6 +142,6 @@ def parse_json_response(content: str) -> dict | list:
     content = content.strip()
     if content.startswith("```"):
         lines = content.split("\n")
-        lines = [l for l in lines if not l.strip().startswith("```")]
+        lines = [line for line in lines if not line.strip().startswith("```")]
         content = "\n".join(lines)
     return json.loads(content)

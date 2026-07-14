@@ -1,4 +1,5 @@
 """Security utilities: password hashing, JWT tokens, content hashing, input sanitization."""
+
 import hashlib
 import re
 import uuid
@@ -30,6 +31,7 @@ def _get_jwt_secret() -> str:
 
 # ── Password Hashing ──────────────────────────────────────
 
+
 def password_hash(password: str) -> str:
     """Hash a password using bcrypt with 12 rounds."""
     salt = _bcrypt.gensalt(rounds=12)
@@ -42,6 +44,7 @@ def password_verify(password: str, hashed: str) -> bool:
 
 
 # ── Password Strength ─────────────────────────────────────
+
 
 def validate_password_strength(password: str) -> tuple[bool, str]:
     """Validate password meets minimum strength requirements.
@@ -60,6 +63,7 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
 
 
 # ── JWT Token Operations ──────────────────────────────────
+
 
 def create_access_token(
     user_id: uuid.UUID,
@@ -112,6 +116,7 @@ def decode_token(token: str) -> dict:
 
 
 # ── Content Hashing ────────────────────────────────────────
+
 
 def generate_content_hash(content: str) -> str:
     """Generate a SHA-256 hex digest of the content."""

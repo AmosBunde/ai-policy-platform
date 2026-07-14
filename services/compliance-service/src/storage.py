@@ -1,6 +1,6 @@
 """File storage abstraction: local filesystem and S3."""
+
 import logging
-import os
 import re
 import uuid
 from abc import ABC, abstractmethod
@@ -8,7 +8,9 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-_SAFE_FILENAME_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z]{2,4}$")
+_SAFE_FILENAME_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z]{2,4}$"
+)
 
 
 def generate_safe_filename(extension: str) -> str:
@@ -96,6 +98,7 @@ class S3FileStorage(FileStorage):
             raise ValueError(f"Invalid filename: {filename!r}")
 
         import boto3
+
         s3 = boto3.client("s3", region_name=self._region)
         key = f"{self._prefix}{filename}"
         s3.put_object(Bucket=self._bucket, Key=key, Body=content)
@@ -107,6 +110,7 @@ class S3FileStorage(FileStorage):
             raise ValueError(f"Invalid filename: {filename!r}")
 
         import boto3
+
         s3 = boto3.client("s3", region_name=self._region)
         key = f"{self._prefix}{filename}"
         try:
@@ -120,6 +124,7 @@ class S3FileStorage(FileStorage):
             return False
 
         import boto3
+
         s3 = boto3.client("s3", region_name=self._region)
         key = f"{self._prefix}{filename}"
         try:
@@ -134,6 +139,7 @@ class S3FileStorage(FileStorage):
             raise ValueError(f"Invalid filename: {filename!r}")
 
         import boto3
+
         s3 = boto3.client("s3", region_name=self._region)
         key = f"{self._prefix}{filename}"
         return s3.generate_presigned_url(

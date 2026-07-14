@@ -3,6 +3,7 @@
 Verifies that the API enforces rate limits and returns HTTP 429
 when thresholds are exceeded. The gateway uses slowapi for rate limiting.
 """
+
 import pytest
 from .conftest import raw_client  # noqa: F401
 from .conftest import mock_db_no_user
@@ -25,10 +26,13 @@ class TestRateLimiting:
         try:
             status_codes = []
             for i in range(60):
-                response = await raw_client.post("/api/v1/auth/login", json={
-                    "email": f"ratelimit-{i}@test.com",
-                    "password": "WrongPassword1",
-                })
+                response = await raw_client.post(
+                    "/api/v1/auth/login",
+                    json={
+                        "email": f"ratelimit-{i}@test.com",
+                        "password": "WrongPassword1",
+                    },
+                )
                 status_codes.append(response.status_code)
                 if response.status_code == 429:
                     break
@@ -47,6 +51,7 @@ class TestRateLimiting:
         async def mock_refresh(obj):
             import uuid
             from datetime import datetime, timezone
+
             obj.id = uuid.uuid4()
             obj.created_at = datetime.now(timezone.utc)
             obj.updated_at = datetime.now(timezone.utc)
@@ -61,11 +66,14 @@ class TestRateLimiting:
         try:
             status_codes = []
             for i in range(60):
-                response = await raw_client.post("/api/v1/auth/register", json={
-                    "email": f"ratelimit-reg-{i}@test.com",
-                    "password": "SecurePass1",
-                    "full_name": "Rate Limit Test",
-                })
+                response = await raw_client.post(
+                    "/api/v1/auth/register",
+                    json={
+                        "email": f"ratelimit-reg-{i}@test.com",
+                        "password": "SecurePass1",
+                        "full_name": "Rate Limit Test",
+                    },
+                )
                 status_codes.append(response.status_code)
                 if response.status_code == 429:
                     break

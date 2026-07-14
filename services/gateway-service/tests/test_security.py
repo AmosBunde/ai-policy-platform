@@ -1,4 +1,5 @@
 """Tests for security: XSS rejection, SQL injection patterns, oversized payloads."""
+
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -39,6 +40,7 @@ class TestXSSInInput:
         async def mock_refresh(obj):
             import uuid
             from datetime import datetime, timezone
+
             obj.id = uuid.uuid4()
             obj.created_at = datetime.now(timezone.utc)
             obj.updated_at = datetime.now(timezone.utc)
@@ -51,11 +53,14 @@ class TestXSSInInput:
 
         app.dependency_overrides[get_db] = override_db
         try:
-            response = await client.post("/api/v1/auth/register", json={
-                "email": "xss@test.com",
-                "password": "SecurePass1",
-                "full_name": '<script>alert("xss")</script>Clean Name',
-            })
+            response = await client.post(
+                "/api/v1/auth/register",
+                json={
+                    "email": "xss@test.com",
+                    "password": "SecurePass1",
+                    "full_name": '<script>alert("xss")</script>Clean Name',
+                },
+            )
             assert response.status_code == 201
             data = response.json()
             assert "<script>" not in data["full_name"]
@@ -73,10 +78,13 @@ class TestXSSInInput:
 
         app.dependency_overrides[get_db] = override_db
         try:
-            response = await client.post("/api/v1/auth/login", json={
-                "email": '<script>alert(1)</script>@test.com',
-                "password": "TestPass1",
-            })
+            response = await client.post(
+                "/api/v1/auth/login",
+                json={
+                    "email": "<script>alert(1)</script>@test.com",
+                    "password": "TestPass1",
+                },
+            )
             # Should fail validation or return 401, never execute script
             assert response.status_code in (401, 422)
         finally:
@@ -107,20 +115,26 @@ class TestOversizedPayload:
     @pytest.mark.asyncio
     async def test_oversized_register_payload(self, client):
         """Reject payloads with fields exceeding max lengths."""
-        response = await client.post("/api/v1/auth/register", json={
-            "email": "test@test.com",
-            "password": "SecurePass1",
-            "full_name": "x" * 10000,
-        })
+        response = await client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": "test@test.com",
+                "password": "SecurePass1",
+                "full_name": "x" * 10000,
+            },
+        )
         # Should be rejected by Pydantic max_length=255
         assert response.status_code == 422
 
     @pytest.mark.asyncio
     async def test_oversized_login_password(self, client):
-        response = await client.post("/api/v1/auth/login", json={
-            "email": "test@test.com",
-            "password": "x" * 200,
-        })
+        response = await client.post(
+            "/api/v1/auth/login",
+            json={
+                "email": "test@test.com",
+                "password": "x" * 200,
+            },
+        )
         # max_length=128 on LoginRequest.password
         assert response.status_code == 422
 
@@ -134,4 +148,7 @@ class TestSecurityHeaders:
         assert resp.headers.get("X-XSS-Protection") == "1; mode=block"
         assert resp.headers.get("Content-Security-Policy") == "default-src 'self'"
         assert resp.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
-        assert resp.headers.get("Permissions-Policy") == "camera=(), microphone=(), geolocation=()"
+        assert (
+            resp.headers.get("Permissions-Policy")
+            == "camera=(), microphone=(), geolocation=()"
+        )

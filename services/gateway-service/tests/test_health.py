@@ -1,4 +1,5 @@
 """Tests for Gateway Service health endpoints."""
+
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport

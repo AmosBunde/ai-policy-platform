@@ -1,18 +1,19 @@
 """Shared test fixtures for gateway service tests."""
+
 import os
 import uuid
 from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
-import pytest
-import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
 
 # Set test environment before importing app
-os.environ["JWT_SECRET"] = "test-secret-key-that-is-at-least-32-characters-long-for-testing!"
+os.environ["JWT_SECRET"] = (
+    "test-secret-key-that-is-at-least-32-characters-long-for-testing!"
+)
 os.environ["APP_ENV"] = "development"
 
 from shared.config.settings import get_settings
+
 get_settings.cache_clear()
 
 from shared.utils.security import create_access_token, password_hash

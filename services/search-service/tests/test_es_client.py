@@ -1,5 +1,5 @@
 """Tests for Elasticsearch client: query building, highlighting, sanitization."""
-import pytest
+
 from src.elasticsearch_client import (
     sanitize_query,
     escape_snippet,
@@ -50,7 +50,7 @@ class TestEscapeSnippet:
         assert escape_snippet("plain text") == "plain text"
 
     def test_mixed_highlight_and_xss(self):
-        result = escape_snippet('<em>good</em> <script>bad</script>')
+        result = escape_snippet("<em>good</em> <script>bad</script>")
         assert "<em>good</em>" in result
         assert "<script>" not in result
 
