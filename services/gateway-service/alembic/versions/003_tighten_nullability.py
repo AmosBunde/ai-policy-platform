@@ -62,11 +62,14 @@ def upgrade() -> None:
         for column in columns:
             # Backfill any legacy NULLs from the column's server default
             # before tightening; DEFAULT here resolves that default.
-            op.execute(f"UPDATE {table} SET {column} = DEFAULT WHERE {column} IS NULL")
+            # Identifiers come from the hardcoded map above, not user input.
+            op.execute(
+                f"UPDATE {table} SET {column} = DEFAULT WHERE {column} IS NULL"  # nosec B608
+            )
             op.execute(f"ALTER TABLE {table} ALTER COLUMN {column} SET NOT NULL")
 
 
 def downgrade() -> None:
     for table, columns in _NOT_NULL_COLUMNS.items():
         for column in columns:
-            op.execute(f"ALTER TABLE {table} ALTER COLUMN {column} DROP NOT NULL")
+            op.execute(f"ALTER TABLE {table} ALTER COLUMN {column} DROP NOT NULL")  # noqa: E501
