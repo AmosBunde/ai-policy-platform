@@ -106,8 +106,12 @@ export function ResultCard({ result }: ResultCardProps) {
             </span>
           </div>
 
-          {/* Score bar */}
-          <div className="mt-2 h-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+          {/* Score bar — decorative; the "% match" text above conveys the value.
+              Inline width is intentional: the value is dynamic per result. */}
+          <div
+            aria-hidden="true"
+            className="mt-2 h-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"
+          >
             <div
               className="h-full bg-accent rounded-full transition-all"
               style={{ width: `${Math.round(result.score * 100)}%` }}
