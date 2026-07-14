@@ -1,9 +1,10 @@
 import { lazy, Suspense } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { MainLayout } from "./components/layout/MainLayout";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { useAutoRefresh } from "./hooks/useAuth";
 import { Spinner } from "./components/ui/Spinner";
+import { ErrorBoundary } from "./components/ui/ErrorBoundary";
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Login = lazy(() => import("./pages/Login"));
@@ -18,29 +19,33 @@ const Settings = lazy(() => import("./pages/Settings"));
 export function App() {
   // Set up auto-refresh interval for JWT tokens
   useAutoRefresh();
+  const location = useLocation();
 
   return (
-    <Suspense fallback={<Spinner className="h-screen" />}>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route
-          element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Dashboard />} />
-          <Route path="documents" element={<Documents />} />
-          <Route path="documents/:id" element={<DocumentDetail />} />
-          <Route path="search" element={<Search />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense>
+    // Keyed by pathname so a caught error clears when the user navigates away
+    <ErrorBoundary key={location.pathname}>
+      <Suspense fallback={<Spinner className="h-screen" />}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route
+            element={
+              <ProtectedRoute>
+                <MainLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Dashboard />} />
+            <Route path="documents" element={<Documents />} />
+            <Route path="documents/:id" element={<DocumentDetail />} />
+            <Route path="search" element={<Search />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="settings" element={<Settings />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
   );
 }

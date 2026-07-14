@@ -33,7 +33,15 @@ function ConfidenceBar({ domain, confidence }: { domain: string; confidence: num
   return (
     <div className="flex items-center gap-3 py-1.5">
       <span className="text-xs w-28 text-slate-600 dark:text-slate-400 capitalize">{domain}</span>
-      <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+      <div
+        role="progressbar"
+        aria-label={`${domain} classification confidence`}
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden"
+      >
+        {/* Inline width is intentional: the value is dynamic per datum */}
         <div
           className="h-full bg-accent rounded-full transition-all"
           style={{ width: `${pct}%` }}
@@ -97,7 +105,8 @@ function KeyChangeAccordion({ change, affectedParties }: { change: string; affec
     <div className="border-b border-slate-100 dark:border-slate-800 last:border-0">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 w-full py-2 text-left text-sm"
+        aria-expanded={open}
+        className="flex items-center gap-2 w-full py-2 text-left text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded"
       >
         {open ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
         <span className="text-slate-700 dark:text-slate-300">{change}</span>
@@ -129,13 +138,21 @@ export function EnrichmentPanel({ enrichment }: EnrichmentPanelProps) {
 
   return (
     <Card>
-      <div className="flex border-b border-slate-200 dark:border-slate-700 mb-4 overflow-x-auto">
+      <div
+        role="tablist"
+        aria-label="Enrichment sections"
+        className="flex border-b border-slate-200 dark:border-slate-700 mb-4 overflow-x-auto"
+      >
         {TABS.map((tab) => (
           <button
             key={tab.id}
+            role="tab"
+            id={`enrichment-tab-${tab.id}`}
+            aria-selected={activeTab === tab.id}
+            aria-controls={`enrichment-panel-${tab.id}`}
             onClick={() => setActiveTab(tab.id)}
             className={clsx(
-              "px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2",
+              "px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset",
               activeTab === tab.id
                 ? "border-accent text-accent"
                 : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300",
@@ -147,13 +164,13 @@ export function EnrichmentPanel({ enrichment }: EnrichmentPanelProps) {
       </div>
 
       {activeTab === "summary" && (
-        <div className="prose prose-sm dark:prose-invert max-w-none">
+        <div role="tabpanel" id="enrichment-panel-summary" aria-labelledby="enrichment-tab-summary" className="prose prose-sm dark:prose-invert max-w-none">
           <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{enrichment.summary}</p>
         </div>
       )}
 
       {activeTab === "changes" && (
-        <div>
+        <div role="tabpanel" id="enrichment-panel-changes" aria-labelledby="enrichment-tab-changes">
           {enrichment.keyChanges.length === 0 && (
             <p className="text-sm text-slate-500">No key changes identified.</p>
           )}
@@ -164,7 +181,7 @@ export function EnrichmentPanel({ enrichment }: EnrichmentPanelProps) {
       )}
 
       {activeTab === "classification" && (
-        <div className="space-y-1">
+        <div role="tabpanel" id="enrichment-panel-classification" aria-labelledby="enrichment-tab-classification" className="space-y-1">
           {enrichment.classification.map((cls) => (
             <ConfidenceBar key={cls.domain} domain={cls.domain} confidence={cls.confidence} />
           ))}
@@ -172,7 +189,7 @@ export function EnrichmentPanel({ enrichment }: EnrichmentPanelProps) {
       )}
 
       {activeTab === "impact" && (
-        <div className="overflow-x-auto">
+        <div role="tabpanel" id="enrichment-panel-impact" aria-labelledby="enrichment-tab-impact" className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="text-left text-slate-500 border-b border-slate-200 dark:border-slate-700">
@@ -197,7 +214,7 @@ export function EnrichmentPanel({ enrichment }: EnrichmentPanelProps) {
       )}
 
       {activeTab === "draft" && (
-        <div>
+        <div role="tabpanel" id="enrichment-panel-draft" aria-labelledby="enrichment-tab-draft">
           {enrichment.draftResponse ? (
             <>
               <div className="flex justify-end mb-2">
