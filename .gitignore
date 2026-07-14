@@ -9,4 +9,4 @@ dist/
 *.egg-info/
 
 # Guard against shell brace-expansion artifacts (e.g. a literal "{services" dir)
-{services
+[{]services
