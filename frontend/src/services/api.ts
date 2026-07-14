@@ -7,19 +7,14 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-// Request interceptor: attach JWT and CSRF token
+// Request interceptor: attach JWT
+// (No CSRF header: tokens ride in the Authorization header, not cookies,
+// so cross-site request forgery does not apply to this client.)
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = useAuthStore.getState().accessToken;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-
-  // CSRF header on state-changing requests
-  const method = config.method?.toUpperCase();
-  if (method && ["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-    config.headers["X-CSRF-Token"] = "1";
-  }
-
   return config;
 });
 

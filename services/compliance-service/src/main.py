@@ -5,11 +5,12 @@ import uuid as uuid_mod
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
-from fastapi import FastAPI, HTTPException, Request, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import StreamingResponse
 from prometheus_client import Counter, Histogram, make_asgi_app
 
 from shared.config.settings import get_settings
+from shared.utils.internal_auth import require_internal_token
 from src.generator import VALID_TEMPLATES, render_report, validate_template_id
 
 settings = get_settings()
@@ -49,6 +50,7 @@ app = FastAPI(
     title="RegulatorAI Compliance Service",
     version=settings.app_version,
     lifespan=lifespan,
+    dependencies=[Depends(require_internal_token)],
 )
 
 
