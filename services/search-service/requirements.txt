@@ -1,11 +1,11 @@
-fastapi==0.139.0
-uvicorn[standard]==0.51.0
+fastapi==0.141.1
+uvicorn[standard]==0.52.1
 pydantic==2.13.4
-pydantic-settings==2.14.2
+pydantic-settings==2.15.0
 sqlalchemy[asyncio]==2.0.51
 asyncpg==0.31.0
 elasticsearch[async]==8.13.0
 openai==1.30.0
 numpy==1.26.4
 structlog==24.1.0
-prometheus-client==0.25.0
+prometheus-client==0.26.0
